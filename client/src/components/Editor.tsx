@@ -40,7 +40,6 @@ const defaultFormats = [
   'strike',
   'blockquote',
   'list',
-  'bullet',
   'indent',
   'link',
   'image',
@@ -49,7 +48,7 @@ const defaultFormats = [
 export default function Editor({
   value,
   onChange,
-  placeholder = '내용을 입력하세요...',
+  placeholder = '내용을 입력하세요…',
   readOnly = false,
   className = '',
 }: EditorProps) {

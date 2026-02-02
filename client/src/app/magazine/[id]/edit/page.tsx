@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { IconDeviceFloppy, IconX, IconPhotoUp } from '@tabler/icons-react';
 import Box from '@mui/material/Box';
@@ -16,15 +16,7 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import { api, getImageUrl } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
-import dynamic from 'next/dynamic';
-import Skeleton from '@mui/material/Skeleton';
-
-const Editor = dynamic(() => import('@/components/Editor'), {
-  ssr: false,
-  loading: () => (
-    <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 1 }} aria-label="에디터 로딩 중" />
-  ),
-});
+import Editor from '@/components/Editor';
 
 const CATEGORIES = ['lifestyle', 'tech', 'travel', 'food', 'fashion', 'other'];
 const CATEGORY_LABELS: Record<string, string> = {
@@ -47,6 +39,7 @@ export default function EditMagazinePage() {
   const [coverImage, setCoverImage] = useState('');
   const [category, setCategory] = useState('other');
   const [tags, setTags] = useState<string[]>([]);
+  const [initialData, setInitialData] = useState<any>(null);
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -63,25 +56,36 @@ export default function EditMagazinePage() {
         setCoverImage(res.data.coverImage || '');
         setCategory(res.data.category || 'other');
         setTags(res.data.tags || []);
+        setInitialData(res.data);
       })
       .catch(() => setError('글을 불러올 수 없습니다.'))
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (authLoading || loading) {
+  const isDirty = useMemo(() => {
+    if (!initialData) return false;
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress size={32} aria-label="로딩 중" />
-      </Box>
+      title !== initialData.title ||
+      description !== (initialData.description || '') ||
+      content !== (initialData.content || '') ||
+      coverImage !== (initialData.coverImage || '') ||
+      category !== (initialData.category || 'other') ||
+      JSON.stringify(tags) !== JSON.stringify(initialData.tags || [])
     );
-  }
+  }, [title, description, content, coverImage, category, tags, initialData]);
 
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
@@ -102,21 +106,21 @@ export default function EditMagazinePage() {
     } finally {
       setUploading(false);
     }
-  };
+  }, []);
 
-  const addTag = () => {
+  const addTag = useCallback(() => {
     const t = tagInput.trim();
     if (t && !tags.includes(t)) {
-      setTags([...tags, t]);
+      setTags((prev) => [...prev, t]);
       setTagInput('');
     }
-  };
+  }, [tagInput, tags]);
 
-  const removeTag = (t: string) => {
-    setTags(tags.filter((x) => x !== t));
-  };
+  const removeTag = useCallback((t: string) => {
+    setTags((prev) => prev.filter((x) => x !== t));
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       setError('제목을 입력해주세요.');
@@ -137,6 +141,7 @@ export default function EditMagazinePage() {
         category,
         tags,
       });
+      window.removeEventListener('beforeunload', () => {});
       router.push(`/magazine/${id}`);
       router.refresh();
     } catch (err: unknown) {
@@ -145,10 +150,22 @@ export default function EditMagazinePage() {
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || '저장 실패'
           : '저장 실패'
       );
-    } finally {
       setSaving(false);
     }
-  };
+  }, [id, title, description, content, coverImage, category, tags, router]);
+
+  if (authLoading || loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <CircularProgress size={32} aria-label="로딩 중" />
+      </Box>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
 
   if (error && !title) {
     return (
@@ -170,17 +187,17 @@ export default function EditMagazinePage() {
           글 수정
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" onClick={() => router.back()} startIcon={<IconX size={18} />} sx={{ textTransform: 'none' }}>
+          <Button variant="outlined" onClick={() => router.back()} startIcon={<IconX size={18} aria-hidden="true" />} sx={{ textTransform: 'none' }}>
             취소
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
             disabled={saving}
-            startIcon={<IconDeviceFloppy size={18} />}
+            startIcon={<IconDeviceFloppy size={18} aria-hidden="true" />}
             sx={{ textTransform: 'none' }}
           >
-            {saving ? '저장 중...' : '저장'}
+            {saving ? '저장 중…' : '저장'}
           </Button>
         </Box>
       </Box>
@@ -192,8 +209,21 @@ export default function EditMagazinePage() {
           </Alert>
         )}
 
-        <TextField label="제목" value={title} onChange={(e) => setTitle(e.target.value)} required fullWidth />
-        <TextField label="설명" value={description} onChange={(e) => setDescription(e.target.value)} fullWidth />
+        <TextField
+          label="제목"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          fullWidth
+          autoComplete="off"
+        />
+        <TextField
+          label="설명"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          fullWidth
+          autoComplete="off"
+        />
 
         <Box>
           <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
@@ -218,18 +248,25 @@ export default function EditMagazinePage() {
             }}
           >
             {coverImage ? (
-              <Box component="img" src={getImageUrl(coverImage)} alt="cover" sx={{ height: '100%', width: '100%', objectFit: 'cover', borderRadius: 1 }} />
+              <Box component="img" src={getImageUrl(coverImage)} alt="Thumbnail Preview" sx={{ height: '100%', width: '100%', objectFit: 'cover', borderRadius: 1 }} />
             ) : (
               <>
                 <Box sx={{ color: 'grey.400' }}>
-                  <IconPhotoUp size={32} />
+                  <IconPhotoUp size={32} aria-hidden="true" />
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                  {uploading ? '업로드 중...' : '클릭하여 선택'}
+                  {uploading ? '업로드 중…' : '클릭하여 선택'}
                 </Typography>
               </>
             )}
-            <input type="file" accept="image/*" onChange={handleCoverUpload} disabled={uploading} hidden />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleCoverUpload}
+              disabled={uploading}
+              hidden
+              aria-label="썸네일 이미지 업로드"
+            />
           </Box>
         </Box>
 

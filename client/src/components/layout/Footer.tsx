@@ -6,88 +6,119 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 
+import {
+  Container,
+  Grid,
+  Stack,
+  Divider,
+} from '@mui/material';
+
 export function Footer() {
   return (
     <Box
       component="footer"
       sx={{
         mt: 'auto',
+        bgcolor: 'background.paper',
         borderTop: 1,
         borderColor: 'divider',
-        bgcolor: 'grey.50',
-        py: 6,
+        pt: 8,
+        pb: 4,
       }}
     >
-      <Box sx={{ maxWidth: 1152, mx: 'auto', px: 2 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 3,
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box
-              sx={{
-                borderRadius: 0.5,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                px: 0.5,
-                py: 0.25,
-              }}
-            >
-              <Typography variant="caption" fontWeight={700}>
+      <Container maxWidth="lg">
+        <Grid container spacing={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+              <Box
+                sx={{
+                  borderRadius: 1,
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                }}
+              >
                 M
+              </Box>
+              <Typography variant="h6" fontWeight={800} letterSpacing="-0.02em">
+                YOUR MAGAZINE
               </Typography>
             </Box>
-            <Typography variant="body2" fontWeight={500}>
-              매거진 웹앱
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
+              세상의 다양한 이야기를 담는 나만의 매거진.<br />
+              당신의 영감을 기록하고 공유해보세요.
             </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 3 }}>
-            <Typography
-              component={Link}
-              href="/"
-              variant="body2"
-              color="text.secondary"
-              sx={{ textDecoration: 'none', '&:hover': { color: 'text.primary' } }}
-            >
-              홈
+          </Grid>
+          
+          <Grid size={{ xs: 6, md: 4 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+              Quick Links
             </Typography>
-            <Typography
-              component={Link}
-              href="/create"
-              variant="body2"
-              color="text.secondary"
-              sx={{ textDecoration: 'none', '&:hover': { color: 'text.primary' } }}
-            >
-              새 글 쓰기
+            <Stack spacing={1}>
+              <Typography
+                component={Link}
+                href="/"
+                variant="body2"
+                color="text.secondary"
+                sx={{ textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+              >
+                홈
+              </Typography>
+              <Typography
+                component={Link}
+                href="/create"
+                variant="body2"
+                color="text.secondary"
+                sx={{ textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+              >
+                새 글 쓰기
+              </Typography>
+            </Stack>
+          </Grid>
+
+          <Grid size={{ xs: 6, md: 4 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+              Social
             </Typography>
-          </Box>
+            <Stack direction="row" spacing={1}>
+              <IconButton
+                component="a"
+                href="mailto:hello@example.com"
+                aria-label="이메일 문의"
+                size="small"
+                sx={{ border: '1px solid', borderColor: 'divider' }}
+              >
+                <IconMail size={18} />
+              </IconButton>
+              <IconButton 
+                component="a" 
+                href="#" 
+                aria-label="GitHub" 
+                size="small"
+                sx={{ border: '1px solid', borderColor: 'divider' }}
+              >
+                <IconBrandGithub size={18} />
+              </IconButton>
+            </Stack>
+          </Grid>
+        </Grid>
+
+        <Divider sx={{ my: 4 }} />
+
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+          <Typography variant="caption" color="text.secondary">
+            © {new Date().getFullYear()} YOUR MAGAZINE. All rights reserved.
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            데모용 프로젝트입니다.
+          </Typography>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 4 }}>
-          <IconButton
-            component="a"
-            href="mailto:hello@example.com"
-            aria-label="이메일 문의"
-            size="small"
-          >
-            <IconMail size={20} />
-          </IconButton>
-          <IconButton component="a" href="#" aria-label="GitHub" size="small">
-            <IconBrandGithub size={20} />
-          </IconButton>
-        </Box>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', textAlign: 'center', mt: 4 }}
-        >
-          © {new Date().getFullYear()} 매거진 웹앱. 데모용 프로젝트입니다.
-        </Typography>
-      </Box>
+      </Container>
     </Box>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { IconDeviceFloppy, IconX, IconPhotoUp } from '@tabler/icons-react';
 import Box from '@mui/material/Box';
@@ -16,15 +16,7 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import { api, getImageUrl } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
-import dynamic from 'next/dynamic';
-import Skeleton from '@mui/material/Skeleton';
-
-const Editor = dynamic(() => import('@/components/Editor'), {
-  ssr: false,
-  loading: () => (
-    <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 1 }} aria-label="에디터 로딩 중" />
-  ),
-});
+import Editor from '@/components/Editor';
 
 const CATEGORIES = ['lifestyle', 'tech', 'travel', 'food', 'fashion', 'other'];
 const CATEGORY_LABELS: Record<string, string> = {
@@ -50,20 +42,20 @@ export default function CreatePage() {
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  if (authLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress size={32} aria-label="로딩 중" />
-      </Box>
-    );
-  }
+  const isDirty = title || description || content || coverImage || tags.length > 0;
 
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
@@ -84,21 +76,21 @@ export default function CreatePage() {
     } finally {
       setUploading(false);
     }
-  };
+  }, []);
 
-  const addTag = () => {
+  const addTag = useCallback(() => {
     const t = tagInput.trim();
     if (t && !tags.includes(t)) {
-      setTags([...tags, t]);
+      setTags((prev) => [...prev, t]);
       setTagInput('');
     }
-  };
+  }, [tagInput, tags]);
 
-  const removeTag = (t: string) => {
-    setTags(tags.filter((x) => x !== t));
-  };
+  const removeTag = useCallback((t: string) => {
+    setTags((prev) => prev.filter((x) => x !== t));
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       setError('제목을 입력해주세요.');
@@ -119,6 +111,8 @@ export default function CreatePage() {
         category,
         tags,
       });
+      // 저장 성공 시에는 dirty 체크 없이 이동
+      window.removeEventListener('beforeunload', () => {}); 
       router.push('/');
       router.refresh();
     } catch (err: unknown) {
@@ -127,10 +121,22 @@ export default function CreatePage() {
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || '저장 실패'
           : '저장 실패'
       );
-    } finally {
       setSaving(false);
     }
-  };
+  }, [title, description, content, coverImage, category, tags, router]);
+
+  if (authLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <CircularProgress size={32} aria-label="로딩 중" />
+      </Box>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
 
   return (
     <Box sx={{ maxWidth: 896, mx: 'auto', px: 2, py: 4 }}>
@@ -139,17 +145,17 @@ export default function CreatePage() {
           새 글 쓰기
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" onClick={() => router.back()} startIcon={<IconX size={18} />} sx={{ textTransform: 'none' }}>
+          <Button variant="outlined" onClick={() => router.back()} startIcon={<IconX size={18} aria-hidden="true" />} sx={{ textTransform: 'none' }}>
             취소
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
             disabled={saving}
-            startIcon={<IconDeviceFloppy size={18} />}
+            startIcon={<IconDeviceFloppy size={18} aria-hidden="true" />}
             sx={{ textTransform: 'none' }}
           >
-            {saving ? '저장 중...' : '저장'}
+            {saving ? '저장 중…' : '저장'}
           </Button>
         </Box>
       </Box>
@@ -161,8 +167,23 @@ export default function CreatePage() {
           </Alert>
         )}
 
-        <TextField label="제목" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" required fullWidth />
-        <TextField label="설명 (미리보기)" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="간단한 설명을 입력하세요" fullWidth />
+        <TextField
+          label="제목"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="제목을 입력하세요"
+          required
+          fullWidth
+          autoComplete="off"
+        />
+        <TextField
+          label="설명 (미리보기)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="간단한 설명을 입력하세요"
+          fullWidth
+          autoComplete="off"
+        />
 
         <Box>
           <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
@@ -187,18 +208,25 @@ export default function CreatePage() {
             }}
           >
             {coverImage ? (
-              <Box component="img" src={getImageUrl(coverImage)} alt="cover" sx={{ height: '100%', width: '100%', objectFit: 'cover', borderRadius: 1 }} />
+              <Box component="img" src={getImageUrl(coverImage)} alt="Thumbnail Preview" sx={{ height: '100%', width: '100%', objectFit: 'cover', borderRadius: 1 }} />
             ) : (
               <>
                 <Box sx={{ color: 'grey.400' }}>
-                  <IconPhotoUp size={32} />
+                  <IconPhotoUp size={32} aria-hidden="true" />
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                  {uploading ? '업로드 중...' : '클릭하여 선택'}
+                  {uploading ? '업로드 중…' : '클릭하여 선택'}
                 </Typography>
               </>
             )}
-            <input type="file" accept="image/*" onChange={handleCoverUpload} disabled={uploading} hidden />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleCoverUpload}
+              disabled={uploading}
+              hidden
+              aria-label="썸네일 이미지 업로드"
+            />
           </Box>
         </Box>
 
@@ -239,7 +267,7 @@ export default function CreatePage() {
           <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
             본문
           </Typography>
-          <Editor value={content} onChange={setContent} placeholder="내용을 입력하세요..." />
+          <Editor value={content} onChange={setContent} placeholder="내용을 입력하세요…" />
         </Box>
       </Box>
     </Box>

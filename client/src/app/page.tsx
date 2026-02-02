@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo, Suspense } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { IconFilter } from '@tabler/icons-react';
+import useSWR from 'swr';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
@@ -9,11 +11,12 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import InputLabel from '@mui/material/InputLabel';
 import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
 import { api } from '@/utils/api';
 import { MagazineGrid } from '@/features/magazine/components';
 
 const CATEGORIES = [
-  { value: '', label: '전체' },
+  { value: 'all', label: '전체' },
   { value: 'tech', label: '기술' },
   { value: 'lifestyle', label: '라이프스타일' },
   { value: 'travel', label: '여행' },
@@ -28,125 +31,187 @@ const SORT_OPTIONS = [
   { value: 'views', label: '조회수순' },
 ];
 
-export default function HomePage() {
-  const [magazines, setMagazines] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState('');
-  const [sort, setSort] = useState('latest');
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+const fetcher = (url: string, params: any) => api.get(url, { params }).then((res: any) => res.data);
 
-  useEffect(() => {
-    setLoading(true);
-    api
-      .get('/magazines', { params: { page, limit: 12, category: category || undefined, sort } })
-      .then((res) => {
-        setMagazines(res.data.magazines);
-        setPagination(res.data.pagination || { page: 1, pages: 1, total: 0 });
-      })
-      .catch(() => setMagazines([]))
-      .finally(() => setLoading(false));
-  }, [page, category, sort]);
+import { Container, Paper, Stack, Chip } from '@mui/material';
+
+// ... existing CATEGORIES and SORT_OPTIONS ...
+
+function HomeContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const category = searchParams.get('category') || 'all';
+  const sort = searchParams.get('sort') || 'latest';
+  const page = parseInt(searchParams.get('page') || '1', 10);
+
+  const queryParams = useMemo(() => ({
+    page,
+    limit: 12,
+    category: category === 'all' ? undefined : category,
+    sort,
+  }), [page, category, sort]);
+
+  const { data, error, isLoading } = useSWR(
+    ['/magazines', queryParams],
+    ([url, params]) => fetcher(url, params),
+    { keepPreviousData: true }
+  );
+
+  const updateQuery = (updates: Record<string, string | number>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === 'all' || value === '') {
+        params.delete(key);
+      } else {
+        params.set(key, String(value));
+      }
+    });
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const magazines = data?.magazines || [];
+  const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
 
   return (
-    <Box sx={{ maxWidth: 1152, mx: 'auto', px: 2, py: 4 }}>
-      <Box sx={{ textAlign: 'center', mb: 6 }}>
-        <Typography variant="h1" component="h1" gutterBottom>
-          매거진
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          사용자가 직접 페이지(메뉴)를 구성하는 데모용 매거진 웹앱입니다.
-        </Typography>
-      </Box>
-
-      <Box
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 2,
-          p: 2,
-          mb: 4,
-          borderRadius: 2,
-          border: 1,
-          borderColor: 'divider',
-          bgcolor: 'grey.50',
+    <Box sx={{ bgcolor: 'background.default', pb: 10 }}>
+      {/* Hero Section */}
+      <Box 
+        sx={{ 
+          bgcolor: 'grey.900', 
+          color: 'common.white', 
+          py: { xs: 8, md: 12 }, 
+          mb: 6,
+          backgroundImage: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconFilter size={20} />
-          <Typography variant="body2" fontWeight={500}>
-            필터
+        <Container maxWidth="lg">
+          <Typography 
+            variant="h2" 
+            component="h1" 
+            sx={{ 
+              fontWeight: 800, 
+              mb: 2,
+              fontSize: { xs: '2.5rem', md: '3.75rem' },
+              letterSpacing: '-0.03em'
+            }}
+          >
+            Stories Worth Reading
           </Typography>
-        </Box>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel id="category-label">카테고리</InputLabel>
-          <Select
-            labelId="category-label"
-            id="category-select"
-            value={category}
-            label="카테고리"
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setPage(1);
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 400, 
+              opacity: 0.9, 
+              maxWidth: 600,
+              lineHeight: 1.6
             }}
           >
-            {CATEGORIES.map((c) => (
-              <MenuItem key={c.value || 'all'} value={c.value}>
-                {c.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel id="sort-label">정렬</InputLabel>
-          <Select
-            labelId="sort-label"
-            id="sort-select"
-            value={sort}
-            label="정렬"
-            onChange={(e) => {
-              setSort(e.target.value);
-              setPage(1);
-            }}
-          >
-            {SORT_OPTIONS.map((s) => (
-              <MenuItem key={s.value} value={s.value}>
-                {s.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto' }}>
-          총 {pagination.total}개
-        </Typography>
+            당신의 일상에 영감을 주는 깊이 있는 이야기들.<br />
+            지금 당신의 매거진을 시작해보세요.
+          </Typography>
+        </Container>
       </Box>
 
-      <MagazineGrid magazines={magazines} loading={loading} />
+      <Container maxWidth="lg">
+        {/* Filter Section */}
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: 3, 
+            mb: 6, 
+            borderRadius: 3, 
+            border: '1px solid', 
+            borderColor: 'divider',
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { md: 'center' },
+            gap: 3
+          }}
+        >
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+            {CATEGORIES.map((c) => (
+              <Chip
+                key={c.value}
+                label={c.label}
+                onClick={() => updateQuery({ category: c.value, page: 1 })}
+                color={category === c.value ? 'primary' : 'default'}
+                variant={category === c.value ? 'filled' : 'outlined'}
+                sx={{ 
+                  borderRadius: '8px', 
+                  px: 1,
+                  fontWeight: 600,
+                  '&:hover': { bgcolor: category === c.value ? 'primary.dark' : 'action.hover' }
+                }}
+              />
+            ))}
+          </Stack>
 
-      {pagination.pages > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1, mt: 4 }}>
-          <Button
-            variant="outlined"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            aria-label="이전 페이지"
-          >
-            이전
-          </Button>
-          <Typography variant="body2" color="text.secondary" sx={{ px: 2 }}>
-            {page} / {pagination.pages}
-          </Typography>
-          <Button
-            variant="outlined"
-            onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
-            disabled={page >= pagination.pages}
-            aria-label="다음 페이지"
-          >
-            다음
-          </Button>
-        </Box>
-      )}
+          <Box sx={{ ml: { md: 'auto' }, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <Select
+                value={sort}
+                onChange={(e: any) => updateQuery({ sort: e.target.value, page: 1 })}
+                variant="outlined"
+                sx={{ borderRadius: 2 }}
+              >
+                {SORT_OPTIONS.map((s) => (
+                  <MenuItem key={s.value} value={s.value}>
+                    {s.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography variant="body2" color="text.secondary" fontWeight={500}>
+              총 {pagination.total}개
+            </Typography>
+          </Box>
+        </Paper>
+
+        {error ? (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Typography color="error">데이터를 불러오는 중 오류가 발생했습니다.</Typography>
+            <Button onClick={() => router.refresh()} sx={{ mt: 2 }} variant="outlined">다시 시도</Button>
+          </Box>
+        ) : (
+          <MagazineGrid magazines={magazines} loading={isLoading} />
+        )}
+
+        {pagination.pages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, mt: 8 }}>
+            <Button
+              variant="outlined"
+              onClick={() => updateQuery({ page: Math.max(1, page - 1) })}
+              disabled={page <= 1}
+              sx={{ borderRadius: 2, px: 3 }}
+            >
+              이전
+            </Button>
+            <Typography variant="body1" fontWeight={700}>
+              {page} / {pagination.pages}
+            </Typography>
+            <Button
+              variant="outlined"
+              onClick={() => updateQuery({ page: Math.min(pagination.pages, page + 1) })}
+              disabled={page >= pagination.pages}
+              sx={{ borderRadius: 2, px: 3 }}
+            >
+              다음
+            </Button>
+          </Box>
+        )}
+      </Container>
     </Box>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}>
+      <HomeContent />
+    </Suspense>
   );
 }

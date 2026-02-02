@@ -10,6 +10,7 @@ import {
   IconEdit,
   IconTrash,
 } from '@tabler/icons-react';
+import useSWR from 'swr';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -32,22 +33,16 @@ interface Magazine {
   createdAt?: string;
 }
 
+const fetcher = (url: string) => api.get(url).then((res) => res.data);
+
 export default function MagazineDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
   const id = params.id as string;
-  const [magazine, setMagazine] = useState<Magazine | null>(null);
-  const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    api
-      .get(`/magazines/${id}`)
-      .then((res) => setMagazine(res.data))
-      .catch(() => setMagazine(null))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { data: magazine, error, isLoading } = useSWR<Magazine>(`/magazines/${id}`, fetcher);
 
   const handleDelete = async () => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
@@ -58,21 +53,20 @@ export default function MagazineDetailPage() {
       router.refresh();
     } catch {
       alert('삭제에 실패했습니다.');
-    } finally {
       setDeleting(false);
     }
   };
 
   const formatDate = (d: string | undefined) => {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('ko-KR', {
+    return new Intl.DateTimeFormat('ko-KR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    });
+    }).format(new Date(d));
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <CircularProgress size={32} aria-label="로딩 중" />
@@ -80,7 +74,7 @@ export default function MagazineDetailPage() {
     );
   }
 
-  if (!magazine) {
+  if (!magazine || error) {
     return (
       <Box sx={{ maxWidth: 768, mx: 'auto', px: 2, py: 6, textAlign: 'center' }}>
         <Typography variant="body1" color="text.secondary">
@@ -102,7 +96,7 @@ export default function MagazineDetailPage() {
       <Button
         component={Link}
         href="/"
-        startIcon={<IconArrowLeft size={18} />}
+        startIcon={<IconArrowLeft size={18} aria-hidden="true" />}
         color="inherit"
         sx={{ mb: 4, textTransform: 'none' }}
       >
@@ -134,10 +128,10 @@ export default function MagazineDetailPage() {
               {formatDate(magazine.publishedAt || magazine.createdAt)}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <IconEye size={16} /> {magazine.viewCount ?? 0}
+              <IconEye size={16} aria-hidden="true" /> {new Intl.NumberFormat('ko-KR').format(magazine.viewCount ?? 0)}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <IconHeart size={16} /> {magazine.likes ?? 0}
+              <IconHeart size={16} aria-hidden="true" /> {new Intl.NumberFormat('ko-KR').format(magazine.likes ?? 0)}
             </Typography>
           </Box>
           {isAuthor && (
@@ -147,7 +141,7 @@ export default function MagazineDetailPage() {
                 href={`/magazine/${id}/edit`}
                 variant="outlined"
                 size="small"
-                startIcon={<IconEdit size={16} />}
+                startIcon={<IconEdit size={16} aria-hidden="true" />}
                 sx={{ textTransform: 'none' }}
               >
                 수정
@@ -156,12 +150,12 @@ export default function MagazineDetailPage() {
                 variant="outlined"
                 size="small"
                 color="error"
-                startIcon={<IconTrash size={16} />}
+                startIcon={<IconTrash size={16} aria-hidden="true" />}
                 onClick={handleDelete}
                 disabled={deleting}
                 sx={{ textTransform: 'none' }}
               >
-                {deleting ? '삭제 중...' : '삭제'}
+                {deleting ? '삭제 중…' : '삭제'}
               </Button>
             </Box>
           )}

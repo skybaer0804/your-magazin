@@ -6,19 +6,25 @@ import { usePathname } from 'next/navigation';
 import {
   IconMenu2,
   IconX,
-  IconHome,
   IconPlus,
   IconLogin,
   IconLogout,
-  IconUser,
-  IconChevronDown,
 } from '@tabler/icons-react';
+import useSWR from 'swr';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import {
+  AppBar,
+  Toolbar,
+  Container,
+  Stack,
+  Avatar,
+  Divider,
+} from '@mui/material';
 import { api } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -27,55 +33,16 @@ interface Magazine {
   title: string;
 }
 
-const NavLink = ({
-  href,
-  label,
-  icon: Icon,
-  isActive,
-  onClick,
-}: {
-  href: string;
-  label: string;
-  icon?: React.ComponentType<{ size?: number }>;
-  isActive: boolean;
-  onClick: () => void;
-}) => (
-  <Button
-    component={Link}
-    href={href}
-    startIcon={Icon ? <Icon size={18} /> : undefined}
-    color="inherit"
-    sx={{
-      textTransform: 'none',
-      fontWeight: isActive ? 600 : 500,
-      bgcolor: isActive ? 'action.selected' : 'transparent',
-      '&:hover': { bgcolor: 'action.hover' },
-    }}
-    onClick={onClick}
-  >
-    {label}
-  </Button>
-);
+const fetcher = (url: string) => api.get(url, { params: { limit: 20, sort: 'latest' } }).then((res: any) => res.data);
 
 export function Header() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
-  const [magazines, setMagazines] = useState<Magazine[]>([]);
 
-  useEffect(() => {
-    api
-      .get('/magazines', { params: { limit: 20, sort: 'latest' } })
-      .then((res) => setMagazines(res.data.magazines || []))
-      .catch(() => setMagazines([]));
-  }, [pathname]);
-
-  const navLinks = [
-    { href: '/', label: '홈', icon: IconHome },
-    ...magazines.map((m) => ({ href: `/magazine/${m._id}`, label: m.title, id: m._id })),
-    ...(user ? [{ href: '/create', label: '새 글 쓰기', icon: IconPlus }] : []),
-  ];
+  const { data } = useSWR('/magazines', fetcher);
+  const magazines: Magazine[] = data?.magazines || [];
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchor(event.currentTarget);
@@ -86,163 +53,187 @@ export function Header() {
   };
 
   return (
-    <Box
-      component="header"
-      sx={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 1100,
-        borderBottom: 1,
+    <AppBar 
+      position="sticky" 
+      color="inherit" 
+      elevation={0} 
+      sx={{ 
+        borderBottom: 1, 
         borderColor: 'divider',
-        bgcolor: 'background.paper',
+        bgcolor: 'background.paper'
       }}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: 64,
-          maxWidth: 1152,
-          mx: 'auto',
-          px: 2,
-        }}
-      >
-        <Box
-          component={Link}
-          href="/"
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            textDecoration: 'none',
-            color: 'inherit',
-          }}
-        >
+      <Container maxWidth="lg">
+        <Toolbar disableGutters sx={{ height: 72, justifyContent: 'space-between' }}>
+          {/* Logo */}
           <Box
+            component={Link}
+            href="/"
             sx={{
-              borderRadius: 0.5,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              px: 0.5,
-              py: 0.25,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              textDecoration: 'none',
+              color: 'inherit',
             }}
           >
-            <Typography component="span" variant="h6" fontWeight={700}>
+            <Avatar
+              variant="rounded"
+              sx={{
+                width: 32,
+                height: 32,
+                bgcolor: 'primary.main',
+                fontSize: '1.2rem',
+                fontWeight: 800,
+              }}
+            >
               M
+            </Avatar>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                display: { xs: 'none', sm: 'block' }
+              }}
+            >
+              YOUR MAGAZINE
             </Typography>
           </Box>
-          <Typography variant="h6" fontWeight={700} component="span">
-            매거진
-          </Typography>
-        </Box>
 
-        <Box
-          component="nav"
-          sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 0.5 }}
-        >
-          {navLinks.map((link) => (
-            <NavLink
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              icon={'icon' in link ? link.icon : undefined}
-              isActive={pathname === link.href}
-              onClick={() => setMenuOpen(false)}
-            />
-          ))}
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {user ? (
-            <>
-              <Button
-                aria-label={`${user.name} 사용자 메뉴`}
-                aria-controls={userMenuAnchor ? 'user-menu' : undefined}
-                aria-haspopup="true"
-                aria-expanded={userMenuAnchor ? 'true' : undefined}
-                onClick={handleUserMenuOpen}
-                startIcon={<IconUser size={18} />}
-                endIcon={<IconChevronDown size={16} />}
-                color="inherit"
-                sx={{ textTransform: 'none' }}
-              >
-                {user.name}
-              </Button>
-              <Menu
-                id="user-menu"
-                anchorEl={userMenuAnchor}
-                open={Boolean(userMenuAnchor)}
-                onClose={handleUserMenuClose}
-                MenuListProps={{ 'aria-labelledby': 'user-menu-button' }}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              >
-                <MenuItem
-                  component={Link}
-                  href="/create"
-                  onClick={handleUserMenuClose}
-                  sx={{ gap: 1 }}
-                >
-                  <IconPlus size={16} /> 새 글 쓰기
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    logout();
-                    handleUserMenuClose();
-                  }}
-                  sx={{ gap: 1 }}
-                >
-                  <IconLogout size={16} /> 로그아웃
-                </MenuItem>
-              </Menu>
-            </>
-          ) : (
+          {/* Desktop Navigation */}
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}
+          >
             <Button
               component={Link}
-              href="/login"
-              variant="contained"
-              startIcon={<IconLogin size={18} />}
-              sx={{ textTransform: 'none' }}
+              href="/"
+              color="inherit"
+              sx={{ 
+                fontWeight: pathname === '/' ? 700 : 500,
+                px: 2
+              }}
             >
-              로그인
+              홈
             </Button>
-          )}
-
-          <IconButton
-            aria-label="메뉴 열기"
-            onClick={() => setMenuOpen(!menuOpen)}
-            sx={{ display: { md: 'none' } }}
-          >
-            {menuOpen ? <IconX size={24} /> : <IconMenu2 size={24} />}
-          </IconButton>
-        </Box>
-      </Box>
-
-      {menuOpen && (
-        <Box
-          sx={{
-            display: { md: 'none' },
-            borderTop: 1,
-            borderColor: 'divider',
-            px: 2,
-            py: 2,
-          }}
-        >
-          <Box component="nav" sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.href}
-                href={link.href}
-                label={link.label}
-                icon={'icon' in link ? link.icon : undefined}
-                isActive={pathname === link.href}
-                onClick={() => setMenuOpen(false)}
-              />
+            {magazines.map((m) => (
+              <Button
+                key={m._id}
+                component={Link}
+                href={`/magazine/${m._id}`}
+                color="inherit"
+                sx={{ 
+                  fontWeight: pathname === `/magazine/${m._id}` ? 700 : 500,
+                  px: 2
+                }}
+              >
+                {m.title}
+              </Button>
             ))}
-          </Box>
+          </Stack>
+
+          {/* Right Side Actions */}
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            {user ? (
+              <>
+                <Button
+                  component={Link}
+                  href="/create"
+                  variant="contained"
+                  disableElevation
+                  startIcon={<IconPlus size={20} />}
+                  sx={{ 
+                    display: { xs: 'none', sm: 'flex' },
+                    borderRadius: '20px',
+                    px: 2.5,
+                    fontWeight: 600
+                  }}
+                >
+                  새 글 쓰기
+                </Button>
+                
+                <IconButton 
+                  onClick={handleUserMenuOpen}
+                  sx={{ p: 0.5, border: '1px solid', borderColor: 'divider' }}
+                >
+                  <Avatar 
+                    sx={{ width: 32, height: 32, bgcolor: 'grey.200', color: 'text.primary', fontSize: '0.9rem' }}
+                  >
+                    {user.name.charAt(0)}
+                  </Avatar>
+                </IconButton>
+
+                <Menu
+                  id="user-menu"
+                  anchorEl={userMenuAnchor}
+                  open={Boolean(userMenuAnchor)}
+                  onClose={handleUserMenuClose}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  PaperProps={{
+                    elevation: 3,
+                    sx: { mt: 1.5, minWidth: 180, borderRadius: 2 }
+                  }}
+                >
+                  <Box sx={{ px: 2, py: 1.5 }}>
+                    <Typography variant="subtitle2" fontWeight={700}>{user.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+                  </Box>
+                  <Divider />
+                  <MenuItem component={Link} href="/create" onClick={handleUserMenuClose} sx={{ py: 1 }}>
+                    <IconPlus size={18} style={{ marginRight: 12 }} /> 새 글 쓰기
+                  </MenuItem>
+                  <MenuItem onClick={() => { logout(); handleUserMenuClose(); }} sx={{ py: 1, color: 'error.main' }}>
+                    <IconLogout size={18} style={{ marginRight: 12 }} /> 로그아웃
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <Button
+                component={Link}
+                href="/login"
+                variant="outlined"
+                startIcon={<IconLogin size={20} />}
+                sx={{ borderRadius: '20px', px: 2.5, fontWeight: 600 }}
+              >
+                로그인
+              </Button>
+            )}
+
+            <IconButton
+              onClick={() => setMenuOpen(!menuOpen)}
+              sx={{ display: { md: 'none' } }}
+            >
+              {menuOpen ? <IconX size={24} /> : <IconMenu2 size={24} />}
+            </IconButton>
+          </Stack>
+        </Toolbar>
+      </Container>
+
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <Box sx={{ display: { md: 'none' }, borderTop: 1, borderColor: 'divider', py: 2 }}>
+          <Container maxWidth="lg">
+            <Stack spacing={1}>
+              <Button component={Link} href="/" color="inherit" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
+                홈
+              </Button>
+              {magazines.map((m) => (
+                <Button key={m._id} component={Link} href={`/magazine/${m._id}`} color="inherit" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
+                  {m.title}
+                </Button>
+              ))}
+              {user && (
+                <Button component={Link} href="/create" color="primary" variant="outlined" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
+                  <IconPlus size={20} style={{ marginRight: 8 }} /> 새 글 쓰기
+                </Button>
+              )}
+            </Stack>
+          </Container>
         </Box>
       )}
-    </Box>
+    </AppBar>
   );
 }

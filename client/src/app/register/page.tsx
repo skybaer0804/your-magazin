@@ -77,10 +77,11 @@ export default function RegisterPage() {
             onChange={(e) => setName(e.target.value)}
             required
             placeholder="홍길동"
+            autoComplete="name"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <IconUser size={20} />
+                  <IconUser size={20} aria-hidden="true" />
                 </InputAdornment>
               ),
             }}
@@ -94,10 +95,14 @@ export default function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             placeholder="you@example.com"
+            autoComplete="email"
+            slotProps={{
+              htmlInput: { spellCheck: 'false' }
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <IconMail size={20} />
+                  <IconMail size={20} aria-hidden="true" />
                 </InputAdornment>
               ),
             }}
@@ -112,10 +117,11 @@ export default function RegisterPage() {
             required
             minLength={6}
             placeholder="••••••••"
+            autoComplete="new-password"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <IconLock size={20} />
+                  <IconLock size={20} aria-hidden="true" />
                 </InputAdornment>
               ),
             }}
@@ -129,17 +135,18 @@ export default function RegisterPage() {
             onChange={(e) => setPasswordConfirm(e.target.value)}
             required
             placeholder="••••••••"
+            autoComplete="new-password"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <IconLock size={20} />
+                  <IconLock size={20} aria-hidden="true" />
                 </InputAdornment>
               ),
             }}
             fullWidth
           />
-          <Button type="submit" variant="contained" size="large" disabled={loading} endIcon={<IconArrowRight size={20} />} sx={{ textTransform: 'none' }}>
-            {loading ? '가입 중...' : '회원가입'}
+          <Button type="submit" variant="contained" size="large" disabled={loading} endIcon={<IconArrowRight size={20} aria-hidden="true" />} sx={{ textTransform: 'none' }}>
+            {loading ? '가입 중…' : '회원가입'}
           </Button>
         </Box>
       </Box>

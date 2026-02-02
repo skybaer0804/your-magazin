@@ -67,10 +67,14 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             placeholder="you@example.com"
+            autoComplete="email"
+            slotProps={{
+              htmlInput: { spellCheck: 'false' }
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <IconMail size={20} />
+                  <IconMail size={20} aria-hidden="true" />
                 </InputAdornment>
               ),
             }}
@@ -84,17 +88,18 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             placeholder="••••••••"
+            autoComplete="current-password"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <IconLock size={20} />
+                  <IconLock size={20} aria-hidden="true" />
                 </InputAdornment>
               ),
             }}
             fullWidth
           />
-          <Button type="submit" variant="contained" size="large" disabled={loading} endIcon={<IconArrowRight size={20} />} sx={{ textTransform: 'none' }}>
-            {loading ? '로그인 중...' : '로그인'}
+          <Button type="submit" variant="contained" size="large" disabled={loading} endIcon={<IconArrowRight size={20} aria-hidden="true" />} sx={{ textTransform: 'none' }}>
+            {loading ? '로그인 중…' : '로그인'}
           </Button>
         </Box>
       </Box>
