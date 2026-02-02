@@ -22,14 +22,14 @@ export function Footer() {
         bgcolor: 'background.paper',
         borderTop: 1,
         borderColor: 'divider',
-        pt: 8,
-        pb: 4,
+        pt: 4,
+        pb: 2,
       }}
     >
       <Container maxWidth="lg">
-        <Grid container spacing={4}>
+        <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
               <Box
                 sx={{
                   borderRadius: 1,
@@ -56,10 +56,10 @@ export function Footer() {
           </Grid>
           
           <Grid size={{ xs: 6, md: 4 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
               Quick Links
             </Typography>
-            <Stack spacing={1}>
+            <Stack spacing={0.5}>
               <Typography
                 component={Link}
                 href="/"
@@ -82,7 +82,7 @@ export function Footer() {
           </Grid>
 
           <Grid size={{ xs: 6, md: 4 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
               Social
             </Typography>
             <Stack direction="row" spacing={1}>
@@ -108,9 +108,9 @@ export function Footer() {
           </Grid>
         </Grid>
 
-        <Divider sx={{ my: 4 }} />
+        <Divider sx={{ my: 2 }} />
 
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
           <Typography variant="caption" color="text.secondary">
             © {new Date().getFullYear()} YOUR MAGAZINE. All rights reserved.
           </Typography>

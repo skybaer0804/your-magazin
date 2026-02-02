@@ -75,14 +75,14 @@ function HomeContent() {
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
 
   return (
-    <Box sx={{ bgcolor: 'background.default', pb: 10 }}>
+    <Box sx={{ bgcolor: 'background.default', pb: 3 }}>
       {/* Hero Section */}
       <Box 
         sx={{ 
           bgcolor: 'grey.900', 
           color: 'common.white', 
           py: { xs: 4, md: 6 }, 
-          mb: 6,
+          mb: 3,
           backgroundImage: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -94,8 +94,8 @@ function HomeContent() {
             component="h1" 
             sx={{ 
               fontWeight: 800, 
-              mb: 2,
-              fontSize: { xs: '2.5rem', md: '3.75rem' },
+              mb: 1,
+              fontSize: { xs: '2.5rem', md: '3rem' },
               letterSpacing: '-0.03em'
             }}
           >
@@ -122,7 +122,7 @@ function HomeContent() {
           elevation={0}
           sx={{ 
             p: 3, 
-            mb: 6, 
+            mb: 3, 
             borderRadius: 3, 
             border: '1px solid', 
             borderColor: 'divider',

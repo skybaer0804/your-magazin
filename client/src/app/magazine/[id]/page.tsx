@@ -18,6 +18,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
+import Container from '@mui/material/Container';
 import { api, getImageUrl } from '@/utils/api';
 import { MagazineContent } from '@/features/magazine/components';
 import { useAuth } from '@/context/AuthContext';
@@ -129,7 +130,7 @@ export default function MagazineDetailPage() {
   const coverUrl = magazine.coverImage ? getImageUrl(magazine.coverImage) : null;
 
   return (
-    <Box sx={{ maxWidth: 768, mx: 'auto', px: 2, py: 6 }}>
+    <Container maxWidth="lg" sx={{ py: 6 }}>
       <Box component="article">
         <Box component="header" sx={{ mb: 6 }}>
           {/* Header Row: Thumbnail + Title + Category */}
@@ -205,33 +206,6 @@ export default function MagazineDetailPage() {
                 <IconHeart size={16} /> {new Intl.NumberFormat('ko-KR').format(magazine.likes ?? 0)}
               </Typography>
             </Box>
-
-            {/* 상단 수정/삭제 버튼 - 모바일에서도 보이도록 display 수정 */}
-            {isAuthor && (
-              <Stack direction="row" spacing={1} sx={{ ml: 'auto' }}>
-                <Button
-                  component={Link}
-                  href={`/magazine/${id}/edit`}
-                  variant="outlined"
-                  size="small"
-                  startIcon={<IconEdit size={14} />}
-                  sx={{ borderRadius: '16px', textTransform: 'none', py: 0.5, fontSize: '0.75rem' }}
-                >
-                  수정
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  startIcon={<IconTrash size={14} />}
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  sx={{ borderRadius: '16px', textTransform: 'none', py: 0.5, fontSize: '0.75rem' }}
-                >
-                  {deleting ? '...' : '삭제'}
-                </Button>
-              </Stack>
-            )}
           </Stack>
         </Box>
 
@@ -302,15 +276,15 @@ export default function MagazineDetailPage() {
           <Button
             component={Link}
             href="/"
-            variant="text"
+            variant="outlined"
             color="inherit"
             startIcon={<IconArrowLeft size={20} />}
-            sx={{ borderRadius: '24px', px: 3 }}
+            sx={{ borderRadius: '24px', px: 3, borderColor: 'divider' }}
           >
             목록으로
           </Button>
         </Box>
       </Box>
-    </Box>
+    </Container>
   );
 }
