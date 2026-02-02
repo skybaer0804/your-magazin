@@ -5,6 +5,7 @@ import {
   createMagazine,
   updateMagazine,
   deleteMagazine,
+  toggleLikeMagazine,
 } from '../controllers/magazineController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -15,5 +16,6 @@ router.get('/:id', getMagazineById);
 router.post('/', protect, createMagazine);
 router.put('/:id', protect, updateMagazine);
 router.delete('/:id', protect, deleteMagazine);
+router.post('/:id/like', protect, toggleLikeMagazine);
 
 export default router;

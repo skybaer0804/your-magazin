@@ -8,6 +8,11 @@ import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
 import Typography from '@mui/material/Typography';
 import { getImageUrl } from '@/utils/api';
+import {
+  Avatar,
+  Stack,
+  Chip,
+} from '@mui/material';
 
 interface Magazine {
   _id: string;
@@ -24,14 +29,6 @@ interface Magazine {
 interface MagazineCardProps {
   magazine: Magazine;
 }
-
-import {
-  Avatar,
-  Stack,
-  Chip,
-} from '@mui/material';
-
-// ... interface ...
 
 export function MagazineCard({ magazine }: MagazineCardProps) {
   const coverUrl = magazine.coverImage ? getImageUrl(magazine.coverImage) : null;

@@ -81,7 +81,7 @@ function HomeContent() {
         sx={{ 
           bgcolor: 'grey.900', 
           color: 'common.white', 
-          py: { xs: 8, md: 12 }, 
+          py: { xs: 4, md: 6 }, 
           mb: 6,
           backgroundImage: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop)',
           backgroundSize: 'cover',

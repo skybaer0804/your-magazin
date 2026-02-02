@@ -107,17 +107,6 @@ export function Header() {
             spacing={1}
             sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}
           >
-            <Button
-              component={Link}
-              href="/"
-              color="inherit"
-              sx={{ 
-                fontWeight: pathname === '/' ? 700 : 500,
-                px: 2
-              }}
-            >
-              홈
-            </Button>
             {magazines.map((m) => (
               <Button
                 key={m._id}
@@ -217,9 +206,6 @@ export function Header() {
         <Box sx={{ display: { md: 'none' }, borderTop: 1, borderColor: 'divider', py: 2 }}>
           <Container maxWidth="lg">
             <Stack spacing={1}>
-              <Button component={Link} href="/" color="inherit" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
-                홈
-              </Button>
               {magazines.map((m) => (
                 <Button key={m._id} component={Link} href={`/magazine/${m._id}`} color="inherit" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
                   {m.title}

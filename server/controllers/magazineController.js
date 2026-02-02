@@ -138,3 +138,34 @@ export const deleteMagazine = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const toggleLikeMagazine = async (req, res) => {
+  try {
+    const magazine = await Magazine.findById(req.params.id);
+
+    if (!magazine) {
+      return res.status(404).json({ message: '매거진을 찾을 수 없습니다.' });
+    }
+
+    const isLiked = magazine.likedBy.includes(req.user.id);
+
+    if (isLiked) {
+      // 이미 좋아요를 누른 경우 취소
+      magazine.likedBy = magazine.likedBy.filter((id) => id.toString() !== req.user.id);
+      magazine.likes = Math.max(0, magazine.likes - 1);
+    } else {
+      // 좋아요 추가
+      magazine.likedBy.push(req.user.id);
+      magazine.likes += 1;
+    }
+
+    await magazine.save();
+
+    res.json({
+      likes: magazine.likes,
+      isLiked: !isLiked,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
