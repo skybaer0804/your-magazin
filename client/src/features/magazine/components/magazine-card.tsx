@@ -28,6 +28,7 @@ interface MagazineCardProps {
 import {
   Avatar,
   Stack,
+  Chip,
 } from '@mui/material';
 
 // ... interface ...

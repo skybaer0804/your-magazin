@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const uploadDir = process.env.UPLOAD_DIR || './uploads';
-const maxFileSize = parseInt(process.env.MAX_FILE_SIZE) || 52428800; // 50MB
+const maxFileSize = parseInt(process.env.MAX_FILE_SIZE) || 209715200; // 200MB
 
 const imageDir = path.join(uploadDir, 'images');
 const videoDir = path.join(uploadDir, 'videos');
@@ -58,7 +58,7 @@ const videoFilter = (req, file, cb) => {
 
 export const uploadImage = multer({
   storage: imageStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 52428800 }, // 50MB
   fileFilter: imageFilter,
 }).single('image');
 

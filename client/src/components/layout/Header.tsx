@@ -161,7 +161,7 @@ export function Header() {
                   <Avatar 
                     sx={{ width: 32, height: 32, bgcolor: 'grey.200', color: 'text.primary', fontSize: '0.9rem' }}
                   >
-                    {user.name.charAt(0)}
+                    {user?.name?.charAt(0) || 'U'}
                   </Avatar>
                 </IconButton>
 
