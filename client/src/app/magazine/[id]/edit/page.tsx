@@ -14,6 +14,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import useSWR from 'swr';
 import { api, getImageUrl } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
 import Editor from '@/components/Editor';
@@ -28,16 +29,20 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: '기타',
 };
 
+const fetcher = (url: string) => api.get(url).then((res) => res.data);
+
 export default function EditMagazinePage() {
   const params = useParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const id = params.id as string;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [category, setCategory] = useState('other');
+  const [menuId, setMenuId] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [initialData, setInitialData] = useState<any>(null);
   const [tagInput, setTagInput] = useState('');
@@ -45,6 +50,13 @@ export default function EditMagazinePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const { data: config } = useSWR('/config', fetcher);
+  const menus = config?.menus || [];
 
   useEffect(() => {
     api
@@ -55,6 +67,7 @@ export default function EditMagazinePage() {
         setContent(res.data.content || '');
         setCoverImage(res.data.coverImage || '');
         setCategory(res.data.category || 'other');
+        setMenuId(res.data.menuId || '');
         setTags(res.data.tags || []);
         setInitialData(res.data);
       })
@@ -70,9 +83,10 @@ export default function EditMagazinePage() {
       content !== (initialData.content || '') ||
       coverImage !== (initialData.coverImage || '') ||
       category !== (initialData.category || 'other') ||
+      menuId !== (initialData.menuId || '') ||
       JSON.stringify(tags) !== JSON.stringify(initialData.tags || [])
     );
-  }, [title, description, content, coverImage, category, tags, initialData]);
+  }, [title, description, content, coverImage, category, menuId, tags, initialData]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -139,6 +153,7 @@ export default function EditMagazinePage() {
         content,
         coverImage: coverImage || null,
         category,
+        menuId: menuId || null,
         tags,
       });
       window.removeEventListener('beforeunload', () => {});
@@ -154,7 +169,7 @@ export default function EditMagazinePage() {
     }
   }, [id, title, description, content, coverImage, category, tags, router]);
 
-  if (authLoading || loading) {
+  if (authLoading || loading || !mounted) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <CircularProgress size={32} aria-label="로딩 중" />
@@ -279,6 +294,27 @@ export default function EditMagazinePage() {
               </MenuItem>
             ))}
           </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 160 }}>
+          <InputLabel id="menu-label">메뉴 (옵션)</InputLabel>
+          <Select 
+            labelId="menu-label" 
+            id="menu-select" 
+            value={menuId} 
+            label="메뉴 (옵션)" 
+            onChange={(e) => setMenuId(e.target.value)}
+          >
+            <MenuItem value="">없음</MenuItem>
+            {menus.map((m: any) => (
+              <MenuItem key={m._id} value={m._id}>
+                {m.title}
+              </MenuItem>
+            ))}
+          </Select>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1 }}>
+            선택 시 헤더 메뉴의 드롭다운에 표시됩니다.
+          </Typography>
         </FormControl>
 
         <Box>

@@ -9,6 +9,7 @@ import {
   IconPlus,
   IconLogin,
   IconLogout,
+  IconSettings,
 } from '@tabler/icons-react';
 import useSWR from 'swr';
 import Box from '@mui/material/Box';
@@ -33,16 +34,121 @@ interface Magazine {
   title: string;
 }
 
-const fetcher = (url: string) => api.get(url, { params: { limit: 20, sort: 'latest' } }).then((res: any) => res.data);
+interface Menu {
+  _id: string;
+  title: string;
+}
+
+interface SiteConfig {
+  siteTitle: string;
+  logoText: string;
+  menus: Menu[];
+}
+
+const fetcher = (url: string) => api.get(url).then((res: any) => res.data);
+
+function MenuDropdown({ menu }: { menu: Menu }) {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  
+  const { data: magazines } = useSWR(
+    open ? `/magazines/by-menu/${menu._id}` : null,
+    fetcher
+  );
+
+  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  return (
+    <Box
+      onMouseEnter={handleOpen}
+      onMouseLeave={handleClose}
+      sx={{ position: 'relative' }}
+    >
+      <Button
+        component={Link}
+        href={`/?menuId=${menu._id}`}
+        color="inherit"
+        sx={{ 
+          fontWeight: 500,
+          px: 2,
+          height: 72,
+          borderRadius: 0,
+          borderBottom: open ? '2px solid' : 'none',
+          borderColor: 'primary.main'
+        }}
+      >
+        {menu.title}
+      </Button>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        MenuListProps={{
+          onMouseEnter: () => {}, // Keep open when moving to menu
+          onMouseLeave: handleClose,
+        }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        PaperProps={{
+          elevation: 3,
+          sx: { mt: 0, minWidth: 200, borderRadius: '0 0 8px 8px' }
+        }}
+        sx={{ pointerEvents: 'none' }} // Allow hover to pass through to the Paper
+      >
+        <Box sx={{ pointerEvents: 'auto' }}>
+          {magazines && magazines.length > 0 ? (
+            magazines.map((m: any) => (
+              <MenuItem 
+                key={m._id} 
+                component={Link} 
+                href={`/magazine/${m._id}`}
+                onClick={handleClose}
+                sx={{ py: 1.5, fontSize: '0.9rem' }}
+              >
+                {m.title}
+              </MenuItem>
+            ))
+          ) : (
+            <MenuItem disabled sx={{ py: 1.5, fontSize: '0.9rem', color: 'text.disabled' }}>
+              글이 없습니다.
+            </MenuItem>
+          )}
+        </Box>
+      </Menu>
+    </Box>
+  );
+}
 
 export function Header() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const { data } = useSWR('/magazines', fetcher);
-  const magazines: Magazine[] = data?.magazines || [];
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const { data: config } = useSWR('/config', fetcher, {
+    revalidateOnMount: false,
+    fallbackData: { siteTitle: 'YOUR MAGAZINE', logoText: 'M', menus: [] }
+  });
+  
+  // 데이터가 없거나 마운트 전일 때 사용할 기본값 정의
+  const DEFAULT_TITLE = 'YOUR MAGAZINE';
+  const DEFAULT_LOGO = 'M';
+
+  // 마운트 후에만 서버 데이터 반영
+  const siteTitle = mounted && config?.siteTitle ? config.siteTitle : DEFAULT_TITLE;
+  const logoText = mounted && config?.logoText ? config.logoText : DEFAULT_LOGO;
+  const navMenus: Menu[] = mounted && config?.menus ? config.menus : [];
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchor(event.currentTarget);
@@ -87,7 +193,7 @@ export function Header() {
                 fontWeight: 800,
               }}
             >
-              M
+              {logoText}
             </Avatar>
             <Typography
               variant="h6"
@@ -97,29 +203,18 @@ export function Header() {
                 display: { xs: 'none', sm: 'block' }
               }}
             >
-              YOUR MAGAZINE
+              {siteTitle}
             </Typography>
           </Box>
 
           {/* Desktop Navigation */}
           <Stack
             direction="row"
-            spacing={1}
+            spacing={0}
             sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}
           >
-            {magazines.map((m) => (
-              <Button
-                key={m._id}
-                component={Link}
-                href={`/magazine/${m._id}`}
-                color="inherit"
-                sx={{ 
-                  fontWeight: pathname === `/magazine/${m._id}` ? 700 : 500,
-                  px: 2
-                }}
-              >
-                {m.title}
-              </Button>
+            {mounted && navMenus.map((menu) => (
+              <MenuDropdown key={menu._id} menu={menu} />
             ))}
           </Stack>
 
@@ -171,6 +266,9 @@ export function Header() {
                     <Typography variant="caption" color="text.secondary">{user.email}</Typography>
                   </Box>
                   <Divider />
+                  <MenuItem component={Link} href="/my-magazine" onClick={handleUserMenuClose} sx={{ py: 1 }}>
+                    <IconSettings size={18} style={{ marginRight: 12 }} /> 내 매거진 관리
+                  </MenuItem>
                   <MenuItem component={Link} href="/create" onClick={handleUserMenuClose} sx={{ py: 1 }}>
                     <IconPlus size={18} style={{ marginRight: 12 }} /> 새 글 쓰기
                   </MenuItem>
@@ -206,16 +304,15 @@ export function Header() {
         <Box sx={{ display: { md: 'none' }, borderTop: 1, borderColor: 'divider', py: 2 }}>
           <Container maxWidth="lg">
             <Stack spacing={1}>
-              {magazines.map((m) => (
-                <Button key={m._id} component={Link} href={`/magazine/${m._id}`} color="inherit" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
-                  {m.title}
+              {mounted && navMenus.map((menu) => (
+                <Button key={menu._id} component={Link} href={`/?menuId=${menu._id}`} color="inherit" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
+                  {menu.title}
                 </Button>
               ))}
-              {user && (
-                <Button component={Link} href="/create" color="primary" variant="outlined" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
-                  <IconPlus size={20} style={{ marginRight: 8 }} /> 새 글 쓰기
-                </Button>
-              )}
+              <Divider sx={{ my: 1 }} />
+              <Button component={Link} href="/my-magazine" color="inherit" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
+                <IconSettings size={20} style={{ marginRight: 8 }} /> My Magazine
+              </Button>
             </Stack>
           </Container>
         </Box>

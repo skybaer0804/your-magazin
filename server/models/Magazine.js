@@ -90,6 +90,11 @@ const magazineSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    menuId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SiteConfig.menus',
+      default: null,
+    },
   },
   { timestamps: true }
 );

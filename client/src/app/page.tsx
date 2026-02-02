@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useMemo, Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { IconFilter } from '@tabler/icons-react';
 import useSWR from 'swr';
@@ -41,22 +41,31 @@ function HomeContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const category = searchParams.get('category') || 'all';
   const sort = searchParams.get('sort') || 'latest';
   const page = parseInt(searchParams.get('page') || '1', 10);
+  const menuId = searchParams.get('menuId');
 
   const queryParams = useMemo(() => ({
     page,
     limit: 12,
     category: category === 'all' ? undefined : category,
     sort,
-  }), [page, category, sort]);
+    menuId: menuId || undefined,
+  }), [page, category, sort, menuId]);
 
   const { data, error, isLoading } = useSWR(
     ['/magazines', queryParams],
     ([url, params]) => fetcher(url, params),
-    { keepPreviousData: true }
+    { 
+      keepPreviousData: true,
+    }
   );
 
   const updateQuery = (updates: Record<string, string | number>) => {
@@ -73,6 +82,9 @@ function HomeContent() {
 
   const magazines = data?.magazines || [];
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
+
+  // 하이드레이션 오류 방지를 위해 마운트 전에는 레이아웃만 렌더링
+  if (!mounted) return null;
 
   return (
     <Box sx={{ bgcolor: 'background.default', pb: 3 }}>

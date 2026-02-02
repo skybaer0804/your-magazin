@@ -187,22 +187,43 @@ export default function MagazineDetailPage() {
             <Divider orientation="vertical" flexItem sx={{ height: 12, my: 'auto', display: { xs: 'none', sm: 'block' } }} />
             
             <Box>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.2 }}>
+              <Typography 
+                variant="caption" 
+                color="text.secondary" 
+                display="block" 
+                sx={{ lineHeight: 1.2 }}
+                suppressHydrationWarning
+              >
                 작성일: {formatDate(magazine.createdAt || magazine.publishedAt)}
               </Typography>
               {magazine.updatedAt && magazine.createdAt && 
                new Date(magazine.updatedAt).getTime() - new Date(magazine.createdAt).getTime() > 60000 && (
-                <Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic', display: 'block', lineHeight: 1.2 }}>
+                <Typography 
+                  variant="caption" 
+                  color="text.disabled" 
+                  sx={{ fontStyle: 'italic', display: 'block', lineHeight: 1.2 }}
+                  suppressHydrationWarning
+                >
                   (수정일: {formatDate(magazine.updatedAt)})
                 </Typography>
               )}
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 1.5 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Typography 
+                variant="caption" 
+                color="text.secondary" 
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                suppressHydrationWarning
+              >
                 <IconEye size={16} /> {new Intl.NumberFormat('ko-KR').format(magazine.viewCount ?? 0)}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography 
+                variant="caption" 
+                color="text.secondary" 
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                suppressHydrationWarning
+              >
                 <IconHeart size={16} /> {new Intl.NumberFormat('ko-KR').format(magazine.likes ?? 0)}
               </Typography>
             </Box>

@@ -1,11 +1,13 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { IconMail, IconBrandGithub } from '@tabler/icons-react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-
+import useSWR from 'swr';
+import { api } from '@/utils/api';
 import {
   Container,
   Grid,
@@ -13,7 +15,22 @@ import {
   Divider,
 } from '@mui/material';
 
+const fetcher = (url: string) => api.get(url).then((res) => res.data);
+
 export function Footer() {
+  const [mounted, setMounted] = useState(false);
+  const { data: config } = useSWR('/config', fetcher, {
+    revalidateOnMount: false,
+    fallbackData: { siteTitle: 'YOUR MAGAZINE', logoText: 'M', menus: [] }
+  });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const siteTitle = mounted && config?.siteTitle ? config.siteTitle : 'YOUR MAGAZINE';
+  const logoText = mounted && config?.logoText ? config.logoText : 'M';
+
   return (
     <Box
       component="footer"
@@ -43,10 +60,10 @@ export function Footer() {
                   fontWeight: 800,
                 }}
               >
-                M
+                <span suppressHydrationWarning>{logoText}</span>
               </Box>
-              <Typography variant="h6" fontWeight={800} letterSpacing="-0.02em">
-                YOUR MAGAZINE
+              <Typography variant="h6" fontWeight={800} letterSpacing="-0.02em" suppressHydrationWarning>
+                {siteTitle}
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
@@ -111,8 +128,8 @@ export function Footer() {
         <Divider sx={{ my: 2 }} />
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-          <Typography variant="caption" color="text.secondary">
-            © {new Date().getFullYear()} YOUR MAGAZINE. All rights reserved.
+          <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
+            © {new Date().getFullYear()} {siteTitle}. All rights reserved.
           </Typography>
           <Typography variant="caption" color="text.secondary">
             데모용 프로젝트입니다.

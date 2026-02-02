@@ -10,6 +10,7 @@ import errorHandler from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import magazineRoutes from './routes/magazineRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import configRoutes from './routes/configRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/magazines', magazineRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/config', configRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '매거진 API 서버' });

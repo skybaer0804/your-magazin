@@ -14,6 +14,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import useSWR from 'swr';
 import { api, getImageUrl } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
 import Editor from '@/components/Editor';
@@ -28,21 +29,32 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: '기타',
 };
 
+const fetcher = (url: string) => api.get(url).then((res) => res.data);
+
 export default function CreatePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [category, setCategory] = useState('other');
+  const [menuId, setMenuId] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  const isDirty = title || description || content || coverImage || tags.length > 0;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const { data: config } = useSWR('/config', fetcher);
+  const menus = config?.menus || [];
+
+  const isDirty = title || description || content || coverImage || tags.length > 0 || menuId;
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -103,14 +115,15 @@ export default function CreatePage() {
     setError('');
     setSaving(true);
     try {
-      await api.post('/magazines', {
-        title: title.trim(),
-        description: description.trim(),
-        content,
-        coverImage: coverImage || null,
-        category,
-        tags,
-      });
+        await api.post('/magazines', {
+          title: title.trim(),
+          description: description.trim(),
+          content,
+          coverImage: coverImage || null,
+          category,
+          menuId: menuId || null,
+          tags,
+        });
       // 저장 성공 시에는 dirty 체크 없이 이동
       window.removeEventListener('beforeunload', () => {}); 
       router.push('/');
@@ -125,7 +138,7 @@ export default function CreatePage() {
     }
   }, [title, description, content, coverImage, category, tags, router]);
 
-  if (authLoading) {
+  if (authLoading || !mounted) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <CircularProgress size={32} aria-label="로딩 중" />
@@ -239,6 +252,27 @@ export default function CreatePage() {
               </MenuItem>
             ))}
           </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 160 }}>
+          <InputLabel id="menu-label">메뉴 (옵션)</InputLabel>
+          <Select 
+            labelId="menu-label" 
+            id="menu-select" 
+            value={menuId} 
+            label="메뉴 (옵션)" 
+            onChange={(e) => setMenuId(e.target.value)}
+          >
+            <MenuItem value="">없음</MenuItem>
+            {menus.map((m: any) => (
+              <MenuItem key={m._id} value={m._id}>
+                {m.title}
+              </MenuItem>
+            ))}
+          </Select>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1 }}>
+            선택 시 헤더 메뉴의 드롭다운에 표시됩니다.
+          </Typography>
         </FormControl>
 
         <Box>

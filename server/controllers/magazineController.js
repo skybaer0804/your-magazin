@@ -2,11 +2,14 @@ import Magazine from '../models/Magazine.js';
 
 export const getMagazines = async (req, res) => {
   try {
-    const { page = 1, limit = 12, category, sort = 'latest' } = req.query;
+    const { page = 1, limit = 12, category, sort = 'latest', menuId } = req.query;
 
     const query = { status: 'published' };
     if (category) {
       query.category = category;
+    }
+    if (menuId) {
+      query.menuId = menuId;
     }
 
     let sortOption = { publishedAt: -1 };
@@ -59,7 +62,7 @@ export const getMagazineById = async (req, res) => {
 
 export const createMagazine = async (req, res) => {
   try {
-    const { title, description, content, coverImage, category, tags, status } = req.body;
+    const { title, description, content, coverImage, category, tags, status, menuId } = req.body;
 
     if (!title || !content) {
       return res.status(400).json({
@@ -76,6 +79,7 @@ export const createMagazine = async (req, res) => {
       tags: tags || [],
       status: status || 'published',
       author: req.user.id,
+      menuId: menuId || null,
     });
 
     const populated = await Magazine.findById(magazine._id)
@@ -99,7 +103,7 @@ export const updateMagazine = async (req, res) => {
       return res.status(403).json({ message: '수정 권한이 없습니다.' });
     }
 
-    const { title, description, content, coverImage, category, tags, status } = req.body;
+    const { title, description, content, coverImage, category, tags, status, menuId } = req.body;
 
     if (title) magazine.title = title;
     if (description !== undefined) magazine.description = description;
@@ -108,6 +112,7 @@ export const updateMagazine = async (req, res) => {
     if (category) magazine.category = category;
     if (tags) magazine.tags = tags;
     if (status) magazine.status = status;
+    if (menuId !== undefined) magazine.menuId = menuId;
 
     await magazine.save();
 
@@ -165,6 +170,19 @@ export const toggleLikeMagazine = async (req, res) => {
       likes: magazine.likes,
       isLiked: !isLiked,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getMagazinesByMenu = async (req, res) => {
+  try {
+    const { menuId } = req.params;
+    const magazines = await Magazine.find({ menuId, status: 'published' })
+      .select('title _id')
+      .sort({ createdAt: -1 })
+      .limit(5);
+    res.json(magazines);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
