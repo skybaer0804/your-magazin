@@ -23,22 +23,8 @@ import { toast } from 'react-toastify';
 import { api, getImageUrl } from '@/utils/api';
 import { MagazineContent } from '@/features/magazine/components';
 import { useAuth } from '@/context/AuthContext';
-
-interface Magazine {
-  _id: string;
-  title: string;
-  description?: string;
-  content: string;
-  coverImage?: string;
-  category?: string;
-  viewCount?: number;
-  likes?: number;
-  likedBy?: string[];
-  author?: { _id: string; name: string; image?: string; bio?: string };
-  publishedAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { AxiosResponse } from 'axios';
+import { Magazine } from '@/types';
 
 const CATEGORY_MAP: Record<string, string> = {
   tech: '기술',
@@ -49,7 +35,7 @@ const CATEGORY_MAP: Record<string, string> = {
   other: '기타',
 };
 
-const fetcher = (url: string) => api.get(url).then((res: any) => res.data);
+const fetcher = (url: string) => api.get(url).then((res: AxiosResponse) => res.data);
 
 function MagazineDetailContent() {
   const params = useParams();
@@ -138,8 +124,9 @@ function MagazineDetailContent() {
     );
   }
 
-  const loggedInUserId = user?.id || (user as any)?._id;
-  const authorId = magazine.author && (typeof magazine.author === 'object' ? (magazine.author._id || (magazine.author as any).id) : magazine.author);
+  const loggedInUserId = user?.id;
+  const author = typeof magazine.author === 'object' ? magazine.author : null;
+  const authorId = author?._id || author?.id;
   const isAuthor = loggedInUserId && authorId && String(loggedInUserId) === String(authorId);
   
   const isLiked = loggedInUserId && magazine.likedBy?.includes(String(loggedInUserId));
@@ -190,11 +177,11 @@ function MagazineDetailContent() {
 
           <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3, flexWrap: 'wrap', rowGap: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Avatar src={magazine.author?.image} sx={{ width: 28, height: 28, fontSize: '0.8rem' }}>
-                {magazine.author?.name?.charAt(0)}
+              <Avatar src={author?.image} sx={{ width: 28, height: 28, fontSize: '0.8rem' }}>
+                {author?.name?.charAt(0)}
               </Avatar>
               <Typography variant="subtitle2" fontWeight={700}>
-                {magazine.author?.name || '익명'}
+                {author?.name || '익명'}
               </Typography>
             </Box>
             

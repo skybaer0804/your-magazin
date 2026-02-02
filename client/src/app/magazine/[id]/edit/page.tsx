@@ -16,9 +16,11 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
+import { AxiosError } from 'axios';
 import { api, getImageUrl } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
 import Editor from '@/components/Editor';
+import { Magazine, Menu } from '@/types';
 
 const CATEGORIES = ['lifestyle', 'tech', 'travel', 'food', 'fashion', 'other'];
 const CATEGORY_LABELS: Record<string, string> = {
@@ -44,7 +46,7 @@ function EditMagazineContent() {
   const [category, setCategory] = useState('other');
   const [menuId, setMenuId] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [initialData, setInitialData] = useState<any>(null);
+  const [initialData, setInitialData] = useState<Partial<Magazine> | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -55,9 +57,9 @@ function EditMagazineContent() {
     queryKey: ['config'],
     queryFn: () => fetcher('/config'),
   });
-  const menus = config?.menus || [];
+  const menus = (config?.menus as Menu[]) || [];
 
-  const { data: magazine, error: magazineError, isLoading: magazineLoading } = useQuery({
+  const { data: magazine, error: magazineError } = useQuery<Magazine>({
     queryKey: ['magazine', id],
     queryFn: () => fetcher(`/magazines/${id}`),
   });
@@ -122,8 +124,9 @@ function EditMagazineContent() {
       });
       setCoverImage(data.url);
       toast.success('이미지가 업로드되었습니다.');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || '업로드 실패';
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      const msg = error.response?.data?.message || '업로드 실패';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -169,8 +172,9 @@ function EditMagazineContent() {
       window.removeEventListener('beforeunload', () => {});
       router.push(`/magazine/${id}`);
       router.refresh();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || '저장 실패';
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      const msg = error.response?.data?.message || '저장 실패';
       setError(msg);
       toast.error(msg);
       setSaving(false);
@@ -314,7 +318,7 @@ function EditMagazineContent() {
             onChange={(e) => setMenuId(e.target.value)}
           >
             <MenuItem value="">없음</MenuItem>
-            {menus.map((m: any) => (
+            {menus.map((m: Menu) => (
               <MenuItem key={m._id} value={m._id}>
                 {m.title}
               </MenuItem>

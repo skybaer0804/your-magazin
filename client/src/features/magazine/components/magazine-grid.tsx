@@ -5,18 +5,7 @@ import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import { MagazineCard } from './magazine-card';
-
-interface Magazine {
-  _id: string;
-  title: string;
-  description?: string;
-  coverImage?: string;
-  category?: string;
-  viewCount?: number;
-  likes?: number;
-  author?: { name: string; image?: string };
-  publishedAt?: string;
-}
+import { Magazine } from '@/types';
 
 interface MagazineGridProps {
   magazines: Magazine[];

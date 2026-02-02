@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { IconMail, IconBrandGithub } from '@tabler/icons-react';
 import Box from '@mui/material/Box';
@@ -21,7 +20,6 @@ export function Footer() {
   const { data: config } = useQuery({
     queryKey: ['config'],
     queryFn: () => fetcher('/config'),
-    initialData: { siteTitle: 'YOUR MAGAZINE', logoText: 'M', menus: [] }
   });
 
   const siteTitle = config?.siteTitle || 'YOUR MAGAZINE';

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/utils/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
+import { Menu, SiteConfig } from '@/types';
 import {
   Container,
   Typography,
@@ -35,14 +37,14 @@ function MyMagazineContent() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState(0);
   
-  const { data: config } = useQuery({
+  const { data: config } = useQuery<SiteConfig>({
     queryKey: ['config'],
     queryFn: () => fetcher('/config'),
   });
   
   const [siteTitle, setSiteTitle] = useState('');
   const [logoText, setLogoText] = useState('');
-  const [menus, setMenus] = useState<{ title: string; order: number; _id?: string }[]>([]);
+  const [menus, setMenus] = useState<Menu[]>([]);
   const [newMenuTitle, setNewMenuTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -62,13 +64,14 @@ function MyMagazineContent() {
   }, [config]);
 
   const saveMutation = useMutation({
-    mutationFn: (data: any) => api.put('/config', data),
+    mutationFn: (data: Partial<SiteConfig>) => api.put('/config', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['config'] });
       toast.success('저장되었습니다.');
     },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || '저장 중 오류가 발생했습니다.';
+    onError: (err: unknown) => {
+      const error = err as AxiosError<{ message: string }>;
+      const msg = error.response?.data?.message || '저장 중 오류가 발생했습니다.';
       setError(msg);
       toast.error(msg);
     },

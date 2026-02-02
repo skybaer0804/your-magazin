@@ -26,8 +26,10 @@ import {
   Avatar,
   Divider,
 } from '@mui/material';
+import { AxiosResponse } from 'axios';
 import { api } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
+import { Magazine } from '@/types';
 
 interface Menu {
   _id: string;
@@ -40,7 +42,7 @@ interface SiteConfig {
   menus: Menu[];
 }
 
-const fetcher = (url: string) => api.get(url).then((res: any) => res.data);
+const fetcher = (url: string) => api.get(url).then((res: AxiosResponse) => res.data);
 
 function MenuDropdown({ menu }: { menu: Menu }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -99,7 +101,7 @@ function MenuDropdown({ menu }: { menu: Menu }) {
       >
         <Box sx={{ pointerEvents: 'auto' }}>
           {magazines && magazines.length > 0 ? (
-            magazines.map((m: any) => (
+            magazines.map((m: Magazine) => (
               <MenuItem 
                 key={m._id} 
                 component={Link} 
@@ -122,7 +124,6 @@ function MenuDropdown({ menu }: { menu: Menu }) {
 }
 
 export function Header() {
-  const pathname = usePathname();
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
@@ -130,7 +131,6 @@ export function Header() {
   const { data: config } = useQuery<SiteConfig>({
     queryKey: ['config'],
     queryFn: () => fetcher('/config'),
-    initialData: { siteTitle: 'YOUR MAGAZINE', logoText: 'M', menus: [] }
   });
   
   const siteTitle = config?.siteTitle || 'YOUR MAGAZINE';

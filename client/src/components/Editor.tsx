@@ -8,7 +8,9 @@ import 'react-quill-new/dist/quill.snow.css';
 
 // 클라이언트 사이드에서만 Quill 모듈 등록
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Quill } = require('react-quill-new');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ImageResize = require('quill-image-resize-module-react').default;
   if (Quill && ImageResize) {
     try {

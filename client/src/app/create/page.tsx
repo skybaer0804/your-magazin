@@ -16,9 +16,11 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
+import { AxiosError } from 'axios';
 import { api, getImageUrl } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
 import Editor from '@/components/Editor';
+import { Menu } from '@/types';
 
 const CATEGORIES = ['lifestyle', 'tech', 'travel', 'food', 'fashion', 'other'];
 const CATEGORY_LABELS: Record<string, string> = {
@@ -51,7 +53,7 @@ function CreateContent() {
     queryKey: ['config'],
     queryFn: () => fetcher('/config'),
   });
-  const menus = config?.menus || [];
+  const menus = (config?.menus as Menu[]) || [];
 
   const isDirty = title || description || content || coverImage || tags.length > 0 || menuId;
 
@@ -79,8 +81,9 @@ function CreateContent() {
       });
       setCoverImage(data.url);
       toast.success('이미지가 업로드되었습니다.');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || '업로드 실패';
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      const msg = error.response?.data?.message || '업로드 실패';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -126,8 +129,9 @@ function CreateContent() {
       window.removeEventListener('beforeunload', () => {}); 
       router.push('/');
       router.refresh();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || '저장 실패';
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      const msg = error.response?.data?.message || '저장 실패';
       setError(msg);
       toast.error(msg);
       setSaving(false);
@@ -260,7 +264,7 @@ function CreateContent() {
             onChange={(e) => setMenuId(e.target.value)}
           >
             <MenuItem value="">없음</MenuItem>
-            {menus.map((m: any) => (
+            {menus.map((m: Menu) => (
               <MenuItem key={m._id} value={m._id}>
                 {m.title}
               </MenuItem>

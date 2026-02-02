@@ -3,14 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { api } from '@/utils/api';
 import { getToken, setToken, setUser, getUser, logout as authLogout } from '@/utils/auth';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  image?: string;
-  role: string;
-}
+import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;

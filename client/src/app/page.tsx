@@ -10,8 +10,11 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
+import { SelectChangeEvent } from '@mui/material/Select';
 import { api } from '@/utils/api';
 import { MagazineGrid } from '@/features/magazine/components';
+import { Magazine } from '@/types';
+import { AxiosResponse } from 'axios';
 
 const CATEGORIES = [
   { value: 'all', label: '전체' },
@@ -29,7 +32,8 @@ const SORT_OPTIONS = [
   { value: 'views', label: '조회수순' },
 ];
 
-const fetcher = (url: string, params: any) => api.get(url, { params }).then((res: any) => res.data);
+const fetcher = (url: string, params: Record<string, string | number | boolean | undefined>) => 
+  api.get(url, { params }).then((res: AxiosResponse) => res.data);
 
 import { Container, Paper, Stack, Chip } from '@mui/material';
 
@@ -53,7 +57,10 @@ function HomeContent() {
     menuId: menuId || undefined,
   }), [page, category, sort, menuId]);
 
-  const { data, error, isLoading } = useQuery({
+  const { data, error, isLoading } = useQuery<{
+    magazines: Magazine[];
+    pagination: { page: number; pages: number; total: number };
+  }>({
     queryKey: ['magazines', queryParams],
     queryFn: () => fetcher('/magazines', queryParams),
     placeholderData: (previousData) => previousData,
@@ -154,7 +161,7 @@ function HomeContent() {
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <Select
                 value={sort}
-                onChange={(e: any) => updateQuery({ sort: e.target.value, page: 1 })}
+                onChange={(e: SelectChangeEvent) => updateQuery({ sort: e.target.value, page: 1 })}
                 variant="outlined"
                 sx={{ borderRadius: 2 }}
               >

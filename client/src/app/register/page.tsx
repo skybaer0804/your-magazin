@@ -11,6 +11,7 @@ import Button from '@mui/material/Button';
 import InputAdornment from '@mui/material/InputAdornment';
 import Alert from '@mui/material/Alert';
 import { toast } from 'react-toastify';
+import { AxiosError } from 'axios';
 import { useAuth } from '@/context/AuthContext';
 
 function RegisterContent() {
@@ -40,8 +41,9 @@ function RegisterContent() {
       toast.success('회원가입이 완료되었습니다.');
       router.push('/');
       router.refresh();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || '회원가입에 실패했습니다.';
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      const msg = error.response?.data?.message || '회원가입에 실패했습니다.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -114,7 +116,9 @@ function RegisterContent() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            slotProps={{
+              htmlInput: { minLength: 6 }
+            }}
             placeholder="••••••••"
             autoComplete="new-password"
             InputProps={{

@@ -1,30 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { IconEye, IconHeart } from '@tabler/icons-react';
+import { IconEye } from '@tabler/icons-react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
 import Typography from '@mui/material/Typography';
 import { getImageUrl } from '@/utils/api';
+import { Magazine } from '@/types';
 import {
   Avatar,
   Stack,
   Chip,
 } from '@mui/material';
-
-interface Magazine {
-  _id: string;
-  title: string;
-  description?: string;
-  coverImage?: string;
-  category?: string;
-  viewCount?: number;
-  likes?: number;
-  author?: { name: string; image?: string };
-  publishedAt?: string;
-}
 
 interface MagazineCardProps {
   magazine: Magazine;
@@ -32,6 +21,7 @@ interface MagazineCardProps {
 
 export function MagazineCard({ magazine }: MagazineCardProps) {
   const coverUrl = magazine.coverImage ? getImageUrl(magazine.coverImage) : null;
+  const author = typeof magazine.author === 'object' ? magazine.author : null;
 
   return (
     <Card
@@ -145,10 +135,10 @@ export function MagazineCard({ magazine }: MagazineCardProps) {
         <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Stack direction="row" spacing={1} alignItems="center">
             <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'grey.200', color: 'text.primary' }}>
-              {magazine.author?.name?.charAt(0) || '익'}
+              {author?.name?.charAt(0) || '익'}
             </Avatar>
             <Typography variant="caption" fontWeight={600} color="text.primary">
-              {magazine.author?.name || '익명'}
+              {author?.name || '익명'}
             </Typography>
           </Stack>
           <Stack direction="row" spacing={1.5}>
