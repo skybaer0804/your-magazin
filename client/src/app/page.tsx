@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useMemo, Suspense, useEffect } from 'react';
+import { useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { IconFilter } from '@tabler/icons-react';
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import InputLabel from '@mui/material/InputLabel';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import { api } from '@/utils/api';
@@ -41,11 +39,6 @@ function HomeContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const category = searchParams.get('category') || 'all';
   const sort = searchParams.get('sort') || 'latest';
@@ -60,13 +53,11 @@ function HomeContent() {
     menuId: menuId || undefined,
   }), [page, category, sort, menuId]);
 
-  const { data, error, isLoading } = useSWR(
-    ['/magazines', queryParams],
-    ([url, params]) => fetcher(url, params),
-    { 
-      keepPreviousData: true,
-    }
-  );
+  const { data, error, isLoading } = useQuery({
+    queryKey: ['magazines', queryParams],
+    queryFn: () => fetcher('/magazines', queryParams),
+    placeholderData: (previousData) => previousData,
+  });
 
   const updateQuery = (updates: Record<string, string | number>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -82,9 +73,6 @@ function HomeContent() {
 
   const magazines = data?.magazines || [];
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
-
-  // 하이드레이션 오류 방지를 위해 마운트 전에는 레이아웃만 렌더링
-  if (!mounted) return null;
 
   return (
     <Box sx={{ bgcolor: 'background.default', pb: 3 }}>

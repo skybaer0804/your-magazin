@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -11,7 +11,7 @@ import {
   IconLogout,
   IconSettings,
 } from '@tabler/icons-react';
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -28,11 +28,6 @@ import {
 } from '@mui/material';
 import { api } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
-
-interface Magazine {
-  _id: string;
-  title: string;
-}
 
 interface Menu {
   _id: string;
@@ -51,10 +46,11 @@ function MenuDropdown({ menu }: { menu: Menu }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   
-  const { data: magazines } = useSWR(
-    open ? `/magazines/by-menu/${menu._id}` : null,
-    fetcher
-  );
+  const { data: magazines } = useQuery({
+    queryKey: ['magazines', 'by-menu', menu._id],
+    queryFn: () => fetcher(`/magazines/by-menu/${menu._id}`),
+    enabled: open,
+  });
 
   const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -90,7 +86,7 @@ function MenuDropdown({ menu }: { menu: Menu }) {
         open={open}
         onClose={handleClose}
         MenuListProps={{
-          onMouseEnter: () => {}, // Keep open when moving to menu
+          onMouseEnter: () => {}, 
           onMouseLeave: handleClose,
         }}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
@@ -99,7 +95,7 @@ function MenuDropdown({ menu }: { menu: Menu }) {
           elevation: 3,
           sx: { mt: 0, minWidth: 200, borderRadius: '0 0 8px 8px' }
         }}
-        sx={{ pointerEvents: 'none' }} // Allow hover to pass through to the Paper
+        sx={{ pointerEvents: 'none' }}
       >
         <Box sx={{ pointerEvents: 'auto' }}>
           {magazines && magazines.length > 0 ? (
@@ -130,25 +126,16 @@ export function Header() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const { data: config } = useSWR('/config', fetcher, {
-    revalidateOnMount: false,
-    fallbackData: { siteTitle: 'YOUR MAGAZINE', logoText: 'M', menus: [] }
+  const { data: config } = useQuery<SiteConfig>({
+    queryKey: ['config'],
+    queryFn: () => fetcher('/config'),
+    initialData: { siteTitle: 'YOUR MAGAZINE', logoText: 'M', menus: [] }
   });
   
-  // 데이터가 없거나 마운트 전일 때 사용할 기본값 정의
-  const DEFAULT_TITLE = 'YOUR MAGAZINE';
-  const DEFAULT_LOGO = 'M';
-
-  // 마운트 후에만 서버 데이터 반영
-  const siteTitle = mounted && config?.siteTitle ? config.siteTitle : DEFAULT_TITLE;
-  const logoText = mounted && config?.logoText ? config.logoText : DEFAULT_LOGO;
-  const navMenus: Menu[] = mounted && config?.menus ? config.menus : [];
+  const siteTitle = config?.siteTitle || 'YOUR MAGAZINE';
+  const logoText = config?.logoText || 'M';
+  const navMenus: Menu[] = config?.menus || [];
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchor(event.currentTarget);
@@ -213,7 +200,7 @@ export function Header() {
             spacing={0}
             sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}
           >
-            {mounted && navMenus.map((menu) => (
+            {navMenus.map((menu) => (
               <MenuDropdown key={menu._id} menu={menu} />
             ))}
           </Stack>
@@ -304,7 +291,7 @@ export function Header() {
         <Box sx={{ display: { md: 'none' }, borderTop: 1, borderColor: 'divider', py: 2 }}>
           <Container maxWidth="lg">
             <Stack spacing={1}>
-              {mounted && navMenus.map((menu) => (
+              {navMenus.map((menu) => (
                 <Button key={menu._id} component={Link} href={`/?menuId=${menu._id}`} color="inherit" onClick={() => setMenuOpen(false)} sx={{ justifyContent: 'flex-start', py: 1.5 }}>
                   {menu.title}
                 </Button>

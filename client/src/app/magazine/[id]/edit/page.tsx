@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { IconDeviceFloppy, IconX, IconPhotoUp } from '@tabler/icons-react';
 import Box from '@mui/material/Box';
@@ -14,7 +14,8 @@ import MenuItem from '@mui/material/MenuItem';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 import { api, getImageUrl } from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
 import Editor from '@/components/Editor';
@@ -31,11 +32,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
-export default function EditMagazinePage() {
+function EditMagazineContent() {
   const params = useParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [mounted, setMounted] = useState(false);
   const id = params.id as string;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -51,29 +51,39 @@ export default function EditMagazinePage() {
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const { data: config } = useSWR('/config', fetcher);
+  const { data: config } = useQuery({
+    queryKey: ['config'],
+    queryFn: () => fetcher('/config'),
+  });
   const menus = config?.menus || [];
 
+  const { data: magazine, error: magazineError, isLoading: magazineLoading } = useQuery({
+    queryKey: ['magazine', id],
+    queryFn: () => fetcher(`/magazines/${id}`),
+  });
+
   useEffect(() => {
-    api
-      .get(`/magazines/${id}`)
-      .then((res) => {
-        setTitle(res.data.title);
-        setDescription(res.data.description || '');
-        setContent(res.data.content || '');
-        setCoverImage(res.data.coverImage || '');
-        setCategory(res.data.category || 'other');
-        setMenuId(res.data.menuId || '');
-        setTags(res.data.tags || []);
-        setInitialData(res.data);
-      })
-      .catch(() => setError('글을 불러올 수 없습니다.'))
-      .finally(() => setLoading(false));
-  }, [id]);
+    if (magazine) {
+      setTitle(magazine.title);
+      setDescription(magazine.description || '');
+      setContent(magazine.content || '');
+      setCoverImage(magazine.coverImage || '');
+      setCategory(magazine.category || 'other');
+      setMenuId(magazine.menuId || '');
+      setTags(magazine.tags || []);
+      setInitialData(magazine);
+      setLoading(false);
+    }
+  }, [magazine]);
+
+  useEffect(() => {
+    if (magazineError) {
+      const msg = '글을 불러올 수 없습니다.';
+      setError(msg);
+      toast.error(msg);
+      setLoading(false);
+    }
+  }, [magazineError]);
 
   const isDirty = useMemo(() => {
     if (!initialData) return false;
@@ -111,12 +121,11 @@ export default function EditMagazinePage() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setCoverImage(data.url);
-    } catch (err: unknown) {
-      setError(
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || '업로드 실패'
-          : '업로드 실패'
-      );
+      toast.success('이미지가 업로드되었습니다.');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || '업로드 실패';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploading(false);
     }
@@ -131,17 +140,17 @@ export default function EditMagazinePage() {
   }, [tagInput, tags]);
 
   const removeTag = useCallback((t: string) => {
-    setTags((prev) => prev.filter((x) => x !== t));
+    setTags((prev: string[]) => prev.filter((x: string) => x !== t));
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError('제목을 입력해주세요.');
+      toast.warning('제목을 입력해주세요.');
       return;
     }
     if (!content.trim() || content === '<p><br></p>') {
-      setError('내용을 입력해주세요.');
+      toast.warning('내용을 입력해주세요.');
       return;
     }
     setError('');
@@ -156,23 +165,22 @@ export default function EditMagazinePage() {
         menuId: menuId || null,
         tags,
       });
+      toast.success('글이 성공적으로 수정되었습니다.');
       window.removeEventListener('beforeunload', () => {});
       router.push(`/magazine/${id}`);
       router.refresh();
-    } catch (err: unknown) {
-      setError(
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || '저장 실패'
-          : '저장 실패'
-      );
+    } catch (err: any) {
+      const msg = err.response?.data?.message || '저장 실패';
+      setError(msg);
+      toast.error(msg);
       setSaving(false);
     }
-  }, [id, title, description, content, coverImage, category, tags, router]);
+  }, [id, title, description, content, coverImage, category, tags, router, menuId]);
 
-  if (authLoading || loading || !mounted) {
+  if (authLoading || loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress size={32} aria-label="로딩 중" />
+        <CircularProgress size={32} />
       </Box>
     );
   }
@@ -202,14 +210,14 @@ export default function EditMagazinePage() {
           글 수정
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" onClick={() => router.back()} startIcon={<IconX size={18} aria-hidden="true" />} sx={{ textTransform: 'none' }}>
+          <Button variant="outlined" onClick={() => router.back()} startIcon={<IconX size={18} />} sx={{ textTransform: 'none' }}>
             취소
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
             disabled={saving}
-            startIcon={<IconDeviceFloppy size={18} aria-hidden="true" />}
+            startIcon={<IconDeviceFloppy size={18} />}
             sx={{ textTransform: 'none' }}
           >
             {saving ? '저장 중…' : '저장'}
@@ -267,7 +275,7 @@ export default function EditMagazinePage() {
             ) : (
               <>
                 <Box sx={{ color: 'grey.400' }}>
-                  <IconPhotoUp size={32} aria-hidden="true" />
+                  <IconPhotoUp size={32} />
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
                   {uploading ? '업로드 중…' : '클릭하여 선택'}
@@ -347,5 +355,17 @@ export default function EditMagazinePage() {
         </Box>
       </Box>
     </Box>
+  );
+}
+
+export default function EditMagazinePage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <CircularProgress size={32} />
+      </Box>
+    }>
+      <EditMagazineContent />
+    </Suspense>
   );
 }

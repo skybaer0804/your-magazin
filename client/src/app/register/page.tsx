@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { IconMail, IconLock, IconUser, IconArrowRight } from '@tabler/icons-react';
@@ -10,9 +10,10 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import InputAdornment from '@mui/material/InputAdornment';
 import Alert from '@mui/material/Alert';
+import { toast } from 'react-toastify';
 import { useAuth } from '@/context/AuthContext';
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
   const { register } = useAuth();
   const [email, setEmail] = useState('');
@@ -26,25 +27,23 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     if (password !== passwordConfirm) {
-      setError('비밀번호가 일치하지 않습니다.');
+      toast.warning('비밀번호가 일치하지 않습니다.');
       return;
     }
     if (password.length < 6) {
-      setError('비밀번호는 6자 이상이어야 합니다.');
+      toast.warning('비밀번호는 6자 이상이어야 합니다.');
       return;
     }
     setLoading(true);
     try {
       await register(email, password, name);
+      toast.success('회원가입이 완료되었습니다.');
       router.push('/');
       router.refresh();
-    } catch (err: unknown) {
-      setError(
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ||
-              '회원가입에 실패했습니다.'
-          : '회원가입에 실패했습니다.'
-      );
+    } catch (err: any) {
+      const msg = err.response?.data?.message || '회원가입에 실패했습니다.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -151,5 +150,13 @@ export default function RegisterPage() {
         </Box>
       </Box>
     </Box>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterContent />
+    </Suspense>
   );
 }

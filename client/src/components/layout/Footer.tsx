@@ -6,7 +6,7 @@ import { IconMail, IconBrandGithub } from '@tabler/icons-react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '@/utils/api';
 import {
   Container,
@@ -18,18 +18,14 @@ import {
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
 export function Footer() {
-  const [mounted, setMounted] = useState(false);
-  const { data: config } = useSWR('/config', fetcher, {
-    revalidateOnMount: false,
-    fallbackData: { siteTitle: 'YOUR MAGAZINE', logoText: 'M', menus: [] }
+  const { data: config } = useQuery({
+    queryKey: ['config'],
+    queryFn: () => fetcher('/config'),
+    initialData: { siteTitle: 'YOUR MAGAZINE', logoText: 'M', menus: [] }
   });
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const siteTitle = mounted && config?.siteTitle ? config.siteTitle : 'YOUR MAGAZINE';
-  const logoText = mounted && config?.logoText ? config.logoText : 'M';
+  const siteTitle = config?.siteTitle || 'YOUR MAGAZINE';
+  const logoText = config?.logoText || 'M';
 
   return (
     <Box

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { IconMail, IconLock, IconArrowRight } from '@tabler/icons-react';
@@ -10,9 +10,10 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import InputAdornment from '@mui/material/InputAdornment';
 import Alert from '@mui/material/Alert';
+import { toast } from 'react-toastify';
 import { useAuth } from '@/context/AuthContext';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -26,15 +27,13 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
+      toast.success('로그인되었습니다.');
       router.push('/');
       router.refresh();
-    } catch (err: unknown) {
-      setError(
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ||
-              '로그인에 실패했습니다.'
-          : '로그인에 실패했습니다.'
-      );
+    } catch (err: any) {
+      const msg = err.response?.data?.message || '로그인에 실패했습니다.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -104,5 +103,13 @@ export default function LoginPage() {
         </Box>
       </Box>
     </Box>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

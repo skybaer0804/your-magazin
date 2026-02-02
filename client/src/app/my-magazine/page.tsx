@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/utils/api';
-import useSWR from 'swr';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Container,
   Typography,
@@ -22,16 +22,23 @@ import {
   ListItemSecondaryAction,
   Divider,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import { IconPlus, IconTrash, IconSettings, IconMenu2, IconInfoCircle } from '@tabler/icons-react';
+import { toast } from 'react-toastify';
 
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
-export default function MyMagazinePage() {
+function MyMagazineContent() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState(0);
-  const { data: config, mutate } = useSWR('/config', fetcher);
+  
+  const { data: config } = useQuery({
+    queryKey: ['config'],
+    queryFn: () => fetcher('/config'),
+  });
   
   const [siteTitle, setSiteTitle] = useState('');
   const [logoText, setLogoText] = useState('');
@@ -54,34 +61,41 @@ export default function MyMagazinePage() {
     }
   }, [config]);
 
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => api.put('/config', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config'] });
+      toast.success('저장되었습니다.');
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || '저장 중 오류가 발생했습니다.';
+      setError(msg);
+      toast.error(msg);
+    },
+    onSettled: () => {
+      setSaving(false);
+    }
+  });
+
   const handleSaveInfo = async () => {
     setSaving(true);
     setError('');
-    try {
-      await api.put('/config', { siteTitle, logoText });
-      await mutate();
-      alert('기본 정보가 저장되었습니다.');
-    } catch (err: any) {
-      setError(err.response?.data?.message || '저장 중 오류가 발생했습니다.');
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate({ siteTitle, logoText });
   };
 
   const handleAddMenu = () => {
     if (!newMenuTitle) return;
     if (menus.length >= 5) {
-      setError('메뉴는 최대 5개까지만 추가할 수 있습니다.');
+      toast.warning('메뉴는 최대 5개까지만 추가할 수 있습니다.');
       return;
     }
     if (newMenuTitle.length > 6) {
-      setError('메뉴 이름은 6글자 이하로 입력해주세요.');
+      toast.warning('메뉴 이름은 6글자 이하로 입력해주세요.');
       return;
     }
     const newMenus = [...menus, { title: newMenuTitle, order: menus.length }];
     setMenus(newMenus);
     setNewMenuTitle('');
-    setError('');
   };
 
   const handleDeleteMenu = (index: number) => {
@@ -92,18 +106,18 @@ export default function MyMagazinePage() {
   const handleSaveMenus = async () => {
     setSaving(true);
     setError('');
-    try {
-      await api.put('/config', { menus });
-      await mutate();
-      alert('메뉴 설정이 저장되었습니다.');
-    } catch (err: any) {
-      setError(err.response?.data?.message || '저장 중 오류가 발생했습니다.');
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate({ menus });
   };
 
-  if (authLoading || !user) return null;
+  if (authLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <Container maxWidth="md" sx={{ py: 8 }}>
@@ -238,5 +252,13 @@ export default function MyMagazinePage() {
         </Box>
       </Paper>
     </Container>
+  );
+}
+
+export default function MyMagazinePage() {
+  return (
+    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}>
+      <MyMagazineContent />
+    </Suspense>
   );
 }

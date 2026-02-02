@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,7 +10,7 @@ import {
   IconEdit,
   IconTrash,
 } from '@tabler/icons-react';
-import useSWR from 'swr';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -19,6 +19,7 @@ import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Container from '@mui/material/Container';
+import { toast } from 'react-toastify';
 import { api, getImageUrl } from '@/utils/api';
 import { MagazineContent } from '@/features/magazine/components';
 import { useAuth } from '@/context/AuthContext';
@@ -50,45 +51,61 @@ const CATEGORY_MAP: Record<string, string> = {
 
 const fetcher = (url: string) => api.get(url).then((res: any) => res.data);
 
-export default function MagazineDetailPage() {
+function MagazineDetailContent() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const id = params.id as string;
   const [deleting, setDeleting] = useState(false);
   const [liking, setLiking] = useState(false);
 
-  const { data: magazine, error, isLoading, mutate } = useSWR<Magazine>(`/magazines/${id}`, fetcher);
+  const { data: magazine, error, isLoading } = useQuery<Magazine>({
+    queryKey: ['magazine', id],
+    queryFn: () => fetcher(`/magazines/${id}`),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/magazines/${id}`),
+    onSuccess: () => {
+      toast.success('글이 성공적으로 삭제되었습니다.');
+      router.push('/');
+      router.refresh();
+    },
+    onError: () => {
+      toast.error('삭제에 실패했습니다.');
+      setDeleting(false);
+    },
+  });
 
   const handleDelete = async () => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     setDeleting(true);
-    try {
-      await api.delete(`/magazines/${id}`);
-      router.push('/');
-      router.refresh();
-    } catch {
-      alert('삭제에 실패했습니다.');
-      setDeleting(false);
-    }
+    deleteMutation.mutate();
   };
+
+  const likeMutation = useMutation({
+    mutationFn: () => api.post(`/magazines/${id}/like`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['magazine', id] });
+    },
+    onError: () => {
+      toast.error('좋아요 처리에 실패했습니다.');
+    },
+    onSettled: () => {
+      setLiking(false);
+    }
+  });
 
   const handleLike = async () => {
     if (!user) {
-      alert('로그인이 필요한 기능입니다.');
+      toast.info('로그인이 필요한 기능입니다.');
       router.push('/login');
       return;
     }
     if (liking) return;
     setLiking(true);
-    try {
-      await api.post(`/magazines/${id}/like`);
-      mutate();
-    } catch {
-      alert('좋아요 처리에 실패했습니다.');
-    } finally {
-      setLiking(false);
-    }
+    likeMutation.mutate();
   };
 
   const formatDate = (d: string | undefined) => {
@@ -121,7 +138,6 @@ export default function MagazineDetailPage() {
     );
   }
 
-  // 작성자 확인 로직 개선 (id와 _id 모두 대응)
   const loggedInUserId = user?.id || (user as any)?._id;
   const authorId = magazine.author && (typeof magazine.author === 'object' ? (magazine.author._id || (magazine.author as any).id) : magazine.author);
   const isAuthor = loggedInUserId && authorId && String(loggedInUserId) === String(authorId);
@@ -133,7 +149,6 @@ export default function MagazineDetailPage() {
     <Container maxWidth="lg" sx={{ py: 6 }}>
       <Box component="article">
         <Box component="header" sx={{ mb: 6 }}>
-          {/* Header Row: Thumbnail + Title + Category */}
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
             {coverUrl && (
               <Avatar
@@ -157,8 +172,8 @@ export default function MagazineDetailPage() {
                 <Typography
                   variant="overline"
                   sx={{
-                    bgcolor: 'primary.light',
-                    color: 'primary.main',
+                    bgcolor: 'background.default',
+                    color: 'text.primary',
                     px: 1.2,
                     py: 0.4,
                     borderRadius: 1,
@@ -173,7 +188,6 @@ export default function MagazineDetailPage() {
             </Box>
           </Box>
 
-          {/* Metadata & Actions Row */}
           <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3, flexWrap: 'wrap', rowGap: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Avatar src={magazine.author?.image} sx={{ width: 28, height: 28, fontSize: '0.8rem' }}>
@@ -192,7 +206,6 @@ export default function MagazineDetailPage() {
                 color="text.secondary" 
                 display="block" 
                 sx={{ lineHeight: 1.2 }}
-                suppressHydrationWarning
               >
                 작성일: {formatDate(magazine.createdAt || magazine.publishedAt)}
               </Typography>
@@ -202,7 +215,6 @@ export default function MagazineDetailPage() {
                   variant="caption" 
                   color="text.disabled" 
                   sx={{ fontStyle: 'italic', display: 'block', lineHeight: 1.2 }}
-                  suppressHydrationWarning
                 >
                   (수정일: {formatDate(magazine.updatedAt)})
                 </Typography>
@@ -214,7 +226,6 @@ export default function MagazineDetailPage() {
                 variant="caption" 
                 color="text.secondary" 
                 sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                suppressHydrationWarning
               >
                 <IconEye size={16} /> {new Intl.NumberFormat('ko-KR').format(magazine.viewCount ?? 0)}
               </Typography>
@@ -222,15 +233,12 @@ export default function MagazineDetailPage() {
                 variant="caption" 
                 color="text.secondary" 
                 sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                suppressHydrationWarning
               >
                 <IconHeart size={16} /> {new Intl.NumberFormat('ko-KR').format(magazine.likes ?? 0)}
               </Typography>
             </Box>
           </Stack>
         </Box>
-
-        {/* 중복 이미지를 방지하기 위해 상세 페이지 본문 전 coverImage 섹션 제거 */}
 
         {magazine.description && (
           <Typography 
@@ -255,7 +263,6 @@ export default function MagazineDetailPage() {
 
         <Divider sx={{ my: 6 }} />
 
-        {/* Bottom Actions */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Stack direction="row" spacing={1}>
             <Button
@@ -307,5 +314,17 @@ export default function MagazineDetailPage() {
         </Box>
       </Box>
     </Container>
+  );
+}
+
+export default function MagazineDetailPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <CircularProgress size={32} />
+      </Box>
+    }>
+      <MagazineDetailContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
@@ -42,12 +42,6 @@ export default function Editor({
   readOnly = false,
   className = '',
 }: EditorProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const modules = useMemo(() => ({
     toolbar: [
       [{ header: [1, 2, 3, false] }],
@@ -74,12 +68,6 @@ export default function Editor({
     'image',
     'video',
   ];
-
-  if (!mounted) {
-    return (
-      <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 1 }} />
-    );
-  }
 
   return (
     <Box sx={{ '& .quill': { bgcolor: 'background.paper' } }} className={className}>
